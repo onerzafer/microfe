@@ -1,64 +1,67 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
+import { minify } from 'uglify-js';
+import { BundleItemOut } from './interfaces/bundle.interface';
+import { Manifest } from './interfaces/manifest.interface';
 
 @Injectable()
 export class AppService {
-  getMicroApp(microAppName: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      fs.readFile(
-        `${__dirname}/micro-app-registry/${microAppName}/manifest.json`,
-        { encoding: 'UTF8' },
-        (err, file) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(file);
-          }
-        },
-      );
-    }).then(
-      (file: string) =>
-        new Promise<string>((resolve, reject) => {
-          const manifest = JSON.parse(file);
-          fs.readFile(
-            `${__dirname}/micro-app-registry/${microAppName}/${
-              manifest.bundleName
-              }`,
-            { encoding: 'UTF8' },
-            (err, appContentAsText) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(
-                  this.wrappTheApp({
-                    appContentAsText,
-                    name: manifest.name,
-                    deps: manifest.dependencies
-                      ? Object.keys(manifest.dependencies)
-                      : [],
-                  }),
-                );
-              }
-            },
-          );
-        }),
-    );
-  }
+    public getMicroApp(microAppName: string): Promise<BundleItemOut[]> {
+        return this.getManifest(`${__dirname}/micro-app-registry/${microAppName}/manifest.json`).then(
+            (manifest: Manifest) => {
+                const bundle = manifest.bundle || [];
+                const promises = bundle.map(({ type, path }) => {
+                    path = `${__dirname}/micro-app-registry/${microAppName}/${path}`;
+                    return type === 'js'
+                        ? this.getJsFile(path, manifest).then(file => ({ type: 'js', file } as BundleItemOut))
+                        : this.getCss(path).then(file => ({ type: 'css', file } as BundleItemOut));
+                });
+                return Promise.all(promises);
+            }
+        );
+    }
 
-  wrappTheApp({ appContentAsText, name, deps }): string {
-    return `(function() {
-        const microApp = {
-            "name": "${name}",
-            "deps": [${deps.map(dep => '"' + dep + '"').join(', ')}],
-            "initialize": function(...deps) {
+    private getManifest(path): Promise<Manifest> {
+        return new Promise<string>((resolve, reject) => this.readFile(path, resolve, reject)).then(
+            file => JSON.parse(file) as Manifest
+        );
+    }
+
+    private getCss(path): Promise<string> {
+        return new Promise<string>((resolve, reject) => this.readFile(path, resolve, reject));
+    }
+
+    private getJsFile(path: string, manifest: Manifest): Promise<string> {
+        return new Promise<string>((resolve, reject) => this.readFile(path, resolve, reject))
+            .then(appContentAsText => AppService.wrapTheApp({ appContentAsText, ...manifest }));
+    }
+
+    private readFile(path, resolve, reject) {
+        fs.readFile(path, { encoding: 'UTF8' }, (err, file) => (err ? reject(err) : resolve(file)));
+    }
+
+    private static wrapTheApp({ appContentAsText, name, dependencies = {}, nonBlockingDependencies = {} }): string {
+        return `(function(w) {
+        if(w && w.AppsManager && w.AppsManager.register) {
+            w.AppsManager.register({
+            name: '${name}',
+            deps: [${Object.keys(dependencies)
+                .map(dep => '\'' + dep + '\'')
+                .join(', ')}],
+            noneBlockingDeps: [${Object.keys(nonBlockingDependencies)
+                .map(dep => '\'' + dep + '\'')
+                .join(', ')}],
+            initialize: function(...d) {
                 return {
-                  "exec": function(...args) { ((...args) => {${appContentAsText}})(...args, ...deps) }
+                  exec: function(...a) { ((...microAppArgs) => {
+                      ${appContentAsText}
+                  })(...a, ...d) }
                 }
             }
+        });
         }
-        if(window && window.AppsManager && window.AppsManager.register) {
-            window.AppsManager.register(microApp);
-        }
-    })()`;
-  }
+    })(window)`
+            .replace(/[\n\r\t]/g, '')
+            .replace(/\s\s+/g, ' ');
+    }
 }
