@@ -9,13 +9,30 @@ export class AppService {
         return this.getManifest(`${__dirname}/micro-app-registry/${microAppName}/manifest.json`).then(
             (manifest: Manifest) => {
                 const bundle = manifest.bundle || [];
-                const promises = bundle.map(({ type, path }) => {
-                    path = `${__dirname}/micro-app-registry/${microAppName}/${path}`;
-                    return type === 'js'
-                        ? this.getJsFile(path, manifest).then(file => ({ type: 'js', file } as BundleItemOut))
-                        : this.getCss(path).then(file => ({ type: 'css', file } as BundleItemOut));
-                });
-                return Promise.all(promises);
+                const jsPromise = Promise.all(
+                    bundle
+                        .filter(({ type }) => type === 'js')
+                        .map(({ path }) => {
+                            path = `${__dirname}/micro-app-registry/${microAppName}/${path}`;
+                            return this.getJsFile(path);
+                        })
+                )
+                    .then(files => files.join(' '))
+                    .then(
+                        appContentAsText =>
+                            <BundleItemOut>{
+                                type: 'js',
+                                file: AppService.wrapTheApp({ appContentAsText, ...manifest }),
+                            }
+                    );
+                const cssPromises = bundle
+                    .filter(({ type }) => type === 'css')
+                    .map(({ type, path }) => {
+                        path = `${__dirname}/micro-app-registry/${microAppName}/${path}`;
+                        return this.getCss(path).then(file => ({ type: 'css', file } as BundleItemOut));
+                    });
+                // concat js files
+                return Promise.all([jsPromise, ...cssPromises]);
             }
         );
     }
@@ -30,9 +47,8 @@ export class AppService {
         return new Promise<string>((resolve, reject) => this.readFile(path, resolve, reject));
     }
 
-    private getJsFile(path: string, manifest: Manifest): Promise<string> {
-        return new Promise<string>((resolve, reject) => this.readFile(path, resolve, reject))
-            .then(appContentAsText => AppService.wrapTheApp({ appContentAsText, ...manifest }));
+    private getJsFile(path: string): Promise<string> {
+        return new Promise<string>((resolve, reject) => this.readFile(path, resolve, reject));
     }
 
     private readFile(path, resolve, reject) {
@@ -45,14 +61,14 @@ export class AppService {
             w.AppsManager.register({
             name: '${name}',
             deps: [${Object.keys(dependencies)
-                .map(dep => '\'' + dep + '\'')
+                .map(dep => "'" + dep + "'")
                 .join(', ')}],
             noneBlockingDeps: [${Object.keys(nonBlockingDependencies)
-                .map(dep => '\'' + dep + '\'')
+                .map(dep => "'" + dep + "'")
                 .join(', ')}],
             initialize: function(...d) {
                 return {
-                  exec: function(...a) { ((...microAppArgs) => {
+                  run: function(...a) { ((...microAppArgs) => {
                       ${appContentAsText}
                   })(...a, ...d) }
                 }
