@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
-import { minify } from 'uglify-js';
 import { BundleItemOut } from './interfaces/bundle.interface';
 import { Manifest } from './interfaces/manifest.interface';
 
@@ -60,8 +59,6 @@ export class AppService {
             }
         });
         }
-    })(window)`
-            .replace(/[\n\r\t]/g, '')
-            .replace(/\s\s+/g, ' ');
+    })(window)`;
     }
 }
