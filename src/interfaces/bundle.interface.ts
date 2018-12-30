@@ -1,9 +1,9 @@
 export interface BundleItemIn {
-  type: 'css' | 'js';
-  path: string;
+    type: 'css' | 'js' | 'template';
+    path: string;
 }
 
 export interface BundleItemOut {
-  type: 'css' | 'js';
-  file: string;
+    type: 'css' | 'js' | 'template';
+    file: string;
 }
