@@ -1,56 +1,44 @@
-(function(w, d) {
-    if (w && w.AppsManager && w.AppsManager.register) {
-        w.AppsManager.register({
-            name: "__name__",
+(function(WINDOW, DOCUMENT) {
+    window = undefined;
+    if (WINDOW && WINDOW.AppsManager && WINDOW.AppsManager.register) {
+        WINDOW.AppsManager.register({
+            name: '__name__',
             deps: [__dependencies__],
             noneBlockingDeps: [__nonBlockingDependencies__],
-            initialize: function(...d) {
-                return function(...a) {
-                    const stylesAsText = `__stylesAsText__`;
-                    const [...microAppArgs] = [...a, ...d];
-                    class __name__ extends HTMLElement {
-                        // Specify observed attributes so that
-                        // attributeChangedCallback will work
-                        static get observedAttributes() {
-                          return ['c', 'l'];
+            initialize: microAppArgs => {
+                const styleLinks = [__styleLinks__];
+                class __name__ extends HTMLElement {
+                    constructor() {
+                        super();
+                        const shadow = this.attachShadow({ mode: 'open' });
+
+                        if (styleLinks && styleLinks.length) {
+                            styleLinks.forEach(link => {
+                                const style = DOCUMENT.createElement('link');
+                                style.type = 'text/css';
+                                style.rel = 'stylesheet';
+                                style.href = link;
+                                shadow.appendChild(style);
+                            });
                         }
-                      
-                        constructor() {
-                          // Always call super first in constructor
-                          super();
-                      
-                          const shadow = this.attachShadow({mode: 'open'});
-                          if(stylesAsText && stylesAsText !== "") {
-                              const style = document.createElement('style');
-                              const styleTextNode = document.createTextNode(stylesAsText);
-                              style.appendChild(styleTextNode);
-                              shadow.appendChild(style);
-                          }
-                          const root = document.createElement('div');
-                          root.id = "app-root";
-                          shadow.appendChild(root);
+
+                        const root = DOCUMENT.createElement('app-root');
+                        root.id = '__container_id__';
+                        shadow.appendChild(root);
+                    }
+
+                    connectedCallback() {
+                        if (window.webpackJsonp____name__ && window.webpackJsonp____name__.length) {
+                            delete window.webpackJsonp____name__;
                         }
-                      
-                        connectedCallback() {
-                          console.log('Custom __name__ element added to page.');
-                          const container = this.shadowRoot.getElementById("app-root");
-                          __appContentAsText__
-                        }
-                      
-                        disconnectedCallback() {
-                          console.log('Custom __name__ element removed from page.');
-                        }
-                      
-                        adoptedCallback() {
-                          console.log('Custom __name__ element moved to new page.');
-                        }
-                      
-                        attributeChangedCallback(name, oldValue, newValue) {
-                          console.log('Custom __name__ element attributes changed.');
-                        }
-                      }
-                      customElements.define('__kebab-name__', __name__);
-                };
+                        const MICROAPP_CONTAINER = this.shadowRoot.getElementById('__container_id__');
+                        const SHADOWROOT = this.shadowRoot;
+                        microAppArgs['container'] = MICROAPP_CONTAINER;
+                        microAppArgs['microAppId'] = '__container_id__';
+                        __appContentAsText__;
+                    }
+                }
+                customElements.define('__kebab-name__', __name__);
             },
         });
     }

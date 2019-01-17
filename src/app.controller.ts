@@ -1,6 +1,5 @@
 import { Controller, Get, Header, Options, Param } from '@nestjs/common';
 import { AppService } from './app.service';
-import { BundleItemOut } from './interfaces/bundle.interface';
 
 @Controller('registry')
 export class AppController {
@@ -20,7 +19,7 @@ export class AppController {
     @Header('Access-Control-Allow-Credentials', 'true')
     @Header('Access-Control-Allow-Methods', 'GET')
     @Header('Cache-Control', 'none')
-    getApp(@Param('microAppName') microAppName: string): Promise<BundleItemOut[]> {
-        return this.appService.getMicroApp(microAppName);
+    getApp(@Param('microAppName') microAppName: string): Promise<string> {
+        return this.appService.getMicroApp(microAppName.replace('.js', ''));
     }
 }

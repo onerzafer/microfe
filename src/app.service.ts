@@ -1,89 +1,117 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
-import { BundleItemOut } from './interfaces/bundle.interface';
 import { Manifest } from './interfaces/manifest.interface';
 import * as dashify from 'dashify';
+import * as strip from 'strip-comments';
+import * as uniqid from 'uniqid';
 
 @Injectable()
 export class AppService {
-    public async getMicroApp(microAppName: string): Promise<BundleItemOut[]> {
-        return await this.getManifest(
-            `${__dirname}/micro-app-registry/${microAppName}/micro-fe-manifest.json`
-        ).then((manifest: Manifest) => {
-            const bundle = manifest.bundle || [];
-            const cssFilesPromises = bundle
-                .filter(({ type }) => type === 'css')
-                .map(({ path }) => `${__dirname}/micro-app-registry/${microAppName}/${path}`)
-                .map(path => this.getCssFile(path));
-            const cssPromise = Promise.all(cssFilesPromises)
-                .then(files => files.join(' ')) // concat css files
-            const jsFilePromises = bundle
-                .filter(({ type }) => type === 'js')
-                .map(({ path }) => `${__dirname}/micro-app-registry/${microAppName}/${path}`)
-                .map(path => this.getJsFile(path));
-            const jsPromise = cssPromise
-                .then(stylesAsText => Promise.all(jsFilePromises)
-                    .then(files => files.join(' ')) // concat js files
-                    .then(appContentAsText => this.wrapTheApp({ appContentAsText, ...manifest, stylesAsText }))
-                    .then(appWrappedContentAsText =>({
-                        type: 'js',
-                        file: appWrappedContentAsText,
-                    } as BundleItemOut)));
-            return Promise.all([jsPromise]);
-        });
+    getMicroApp(microAppName: string): Promise<string> {
+        const containerId = uniqid('app-root-');
+        const appRootPath = `${__dirname}/micro-app-registry/${microAppName}`;
+        return this.readFile(`${appRootPath}/micro-fe-manifest.json`)
+            .then(manifestAsText => JSON.parse(manifestAsText))
+            .then((manifest: Manifest) => {
+                const { bundle = [], type = 'default', entry, name } = manifest;
+                if (type === 'static') {
+                    return this.wrapTheApp({
+                        ...manifest,
+                        type,
+                        containerId,
+                        entryPoint: `http://localhost:3000/${name}/${entry}`,
+                    });
+                } else {
+                    const jsFilePromises = bundle
+                        .filter(({ type }) => type === 'js')
+                        .map(({ path }) => `${appRootPath}/${path}`)
+                        .map(path => this.readFile(path)
+                            .then(file => AppService.fixRelativePathsInJs(name, strip(file, {})))
+                            .then(file => AppService.fixDocumentAccessJs(file))
+                        );
+
+                    const styleLinks = bundle
+                        .filter(({ type }) => type === 'css')
+                        .map(({ path }) => `'http://localhost:3000/${name}/${path}'`).join(', ');
+
+                    return Promise.all(jsFilePromises)
+                        .then(files => files.join(' ')) // concat js files
+                        .then(appContentAsText =>
+                            this.wrapTheApp({
+                                appContentAsText,
+                                ...manifest,
+                                styleLinks,
+                                containerId,
+                                type,
+                            })
+                        );
+                }
+            });
     }
 
-    private async getManifest(path): Promise<Manifest> {
-        return await new Promise<string>((resolve, reject) =>
-            this.readFile(path, resolve, reject)
-        ).then(file => JSON.parse(file) as Manifest);
-    }
-
-    private async getJsFile(path: string): Promise<string> {
-        return await new Promise<string>((resolve, reject) =>
-            this.readFile(path, resolve, reject)
+    readFile(path: string): Promise<string> {
+        return new Promise((resolve, reject) =>
+            fs.readFile(path, { encoding: 'UTF8' }, (err: Error, file: string) => (err ? reject(err) : resolve(file)))
         );
     }
 
-    private async getCssFile(path: string): Promise<string> {
-        return await new Promise<string>((resolve, reject) =>
-            this.readFile(path, resolve, reject)
-        );
-    }
-
-    private readFile(path, resolve, reject) {
-        fs.readFile(path, { encoding: 'UTF8' }, (err, file) =>
-            err ? reject(err) : resolve(file)
-        );
-    }
-
-    private async wrapTheApp({
-        appContentAsText,
-        name,
+    wrapTheApp({
+        containerId,
+        appContentAsText = '',
+        name = '',
         dependencies = {},
         nonBlockingDependencies = {},
-        stylesAsText = ""
+        styleLinks = '',
+        entryPoint = '',
+        type,
     }): Promise<string> {
         const parsedDep = Object.keys(dependencies)
-            .map(dep => "'" + dep + "'")
+            .map(dep => '\'' + dep + '\'')
             .join(', ');
         const parsedNonBlockingDeps = Object.keys(nonBlockingDependencies)
-            .map(dep => "'" + dep + "'")
+            .map(dep => '\'' + dep + '\'')
             .join(', ');
-        return await new Promise<string>((resolve, reject) =>
-            this.readFile(
-                `${__dirname}/templates/app.wrapper.template.js`,
-                resolve,
-                reject
+        return this.readFile(`${__dirname}/templates/${AppService.templatePath(type)}`)
+            .then(template =>
+                template
+                    .replace(/__kebab-name__/g, dashify(name))
+                    .replace(/__container_id__/g, containerId)
+                    .replace(/__name__/g, name)
+                    .replace(/__styleLinks__/g, styleLinks)
+                    .replace(/__dependencies__/g, parsedDep)
+                    .replace(/__nonBlockingDependencies__/g, parsedNonBlockingDeps)
+                    .replace(/__entryPoint__/g, entryPoint)
             )
-        ).then(template =>
-            template
-                .replace(/__kebab-name__/g, dashify(name))
-                .replace(/__name__/g, name)
-                .replace(/__stylesAsText__/g, stylesAsText)
-                .replace(/__dependencies__/g, parsedDep)
-                .replace(/__nonBlockingDependencies__/g, parsedNonBlockingDeps)
-                .replace(/__appContentAsText__/g, appContentAsText)
-        );
+            .then(temp => {
+                const tempParts = temp.split('__appContentAsText__');
+                return [
+                    tempParts[0],
+                    appContentAsText.replace(/webpackJsonp/g, `webpackJsonp__${name}`),
+                    tempParts[1],
+                ].join('');
+            });
+    }
+
+    static templatePath(type) {
+        switch (type) {
+            case 'webcomponent':
+            case 'web component':
+                return 'web-component.wrapper.template.js';
+            case 'service':
+                return 'service.wrapper.template.js';
+            case 'static':
+                return 'static.wrapper.template.js';
+            default:
+                return 'app.wrapper.template.js';
+        }
+    }
+
+    static fixRelativePathsInJs(name, file) {
+        const path = `http://localhost:3000/${name}/`;
+        return file.replace(/((?<=(["'])(?!http))[.\/a-zA-Z0-9\-_]*?)(\.((sv|pn)g)|(jpe?g)|(gif))(?=\2)/g, `${path}$&`);
+    }
+
+    static fixDocumentAccessJs(file) {
+        return file.replace(/document.get/g, 'SHADOWROOT.get');
     }
 }
