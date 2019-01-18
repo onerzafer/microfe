@@ -22,6 +22,7 @@
   "dependencies": {
     "@nestjs/common": "^5.4.0",
     "@nestjs/core": "^5.4.0",
+    "cheerio": "^1.0.0-rc.2",
     "dashify": "^2.0.0",
     "reflect-metadata": "^0.1.12",
     "rimraf": "^2.6.2",

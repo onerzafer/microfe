@@ -1,30 +1,18 @@
-(function(WINDOW, DOCUMENT) {
-    window = undefined;
-    if (WINDOW && WINDOW.AppsManager && WINDOW.AppsManager.register) {
-        WINDOW.AppsManager.register({
+(function(window, document) {
+    if (window && window.AppsManager && window.AppsManager.register) {
+        window.AppsManager.register({
             name: '__name__',
             deps: [__dependencies__],
             noneBlockingDeps: [__nonBlockingDependencies__],
             initialize: microAppArgs => {
-                const styleLinks = [__styleLinks__];
                 class __name__ extends HTMLElement {
                     constructor() {
                         super();
-                        const shadow = this.attachShadow({ mode: 'open' });
-
-                        if (styleLinks && styleLinks.length) {
-                            styleLinks.forEach(link => {
-                                const style = DOCUMENT.createElement('link');
-                                style.type = 'text/css';
-                                style.rel = 'stylesheet';
-                                style.href = link;
-                                shadow.appendChild(style);
-                            });
-                        }
-
-                        const root = DOCUMENT.createElement('app-root');
-                        root.id = '__container_id__';
-                        shadow.appendChild(root);
+                        this.attachShadow({ mode: 'open' });
+                        const template = document.createElement('template');
+                        template.id = 'template___container_id__';
+                        template.innerHTML = `__htmlTemplate__`;
+                        this.shadowRoot.appendChild(template.content.cloneNode(true));
                     }
 
                     connectedCallback() {
@@ -32,7 +20,7 @@
                             delete window.webpackJsonp____name__;
                         }
                         const MICROAPP_CONTAINER = this.shadowRoot.getElementById('__container_id__');
-                        const SHADOWROOT = this.shadowRoot;
+                        const DOCUMENT = this.shadowRoot;
                         microAppArgs['container'] = MICROAPP_CONTAINER;
                         microAppArgs['microAppId'] = '__container_id__';
                         __appContentAsText__;
