@@ -13,15 +13,7 @@ export class AppService {
         return this.readFile(`${appRootPath}/micro-fe-manifest.json`)
             .then(manifestAsText => JSON.parse(manifestAsText))
             .then((manifest: Manifest) => {
-                const { bundle = [], type = 'default', entry, name } = manifest;
-                if (type === 'static') {
-                    return this.wrapTheApp({
-                        ...manifest,
-                        type,
-                        containerId,
-                        entryPoint: `http://localhost:3000/${name}/${entry}`,
-                    });
-                } else {
+                const { bundle = [], type = 'default', name } = manifest;
                     const jsFilePromises = bundle
                         .filter(({ type }) => type === 'js')
                         .map(({ path }) => `${appRootPath}/${path}`)
@@ -45,7 +37,6 @@ export class AppService {
                                 type,
                             })
                         );
-                }
             });
     }
 
@@ -62,7 +53,6 @@ export class AppService {
         dependencies = {},
         nonBlockingDependencies = {},
         styleLinks = '',
-        entryPoint = '',
         type,
     }): Promise<string> {
         const parsedDep = Object.keys(dependencies)
@@ -80,7 +70,6 @@ export class AppService {
                     .replace(/__styleLinks__/g, styleLinks)
                     .replace(/__dependencies__/g, parsedDep)
                     .replace(/__nonBlockingDependencies__/g, parsedNonBlockingDeps)
-                    .replace(/__entryPoint__/g, entryPoint)
             )
             .then(temp => {
                 const tempParts = temp.split('__appContentAsText__');
@@ -99,8 +88,6 @@ export class AppService {
                 return 'web-component.wrapper.template.js';
             case 'service':
                 return 'service.wrapper.template.js';
-            case 'static':
-                return 'static.wrapper.template.js';
             default:
                 return 'app.wrapper.template.js';
         }
