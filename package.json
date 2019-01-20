@@ -20,10 +20,13 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@angular/cli": "^7.2.2",
     "@nestjs/common": "^5.4.0",
     "@nestjs/core": "^5.4.0",
     "cheerio": "^1.0.0-rc.2",
     "dashify": "^2.0.0",
+    "global": "^4.3.2",
+    "nest-schedule": "^0.4.5",
     "reflect-metadata": "^0.1.12",
     "rimraf": "^2.6.2",
     "rxjs": "^6.2.2",

@@ -3,7 +3,6 @@
         window.AppsManager.register({
             name: '__name__',
             deps: [__dependencies__],
-            noneBlockingDeps: [__nonBlockingDependencies__],
             initialize: microAppArgs => {
                 class __name__ extends HTMLElement {
                     constructor() {

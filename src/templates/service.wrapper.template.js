@@ -4,7 +4,6 @@
         WINDOW.AppsManager.register({
             name: '__name__',
             deps: [__dependencies__],
-            noneBlockingDeps: [__nonBlockingDependencies__],
             initialize: (microAppArgs) => __appContentAsText__,
         });
     }
