@@ -1,9 +1,9 @@
 import { Controller, Get, Header, Options, Param } from '@nestjs/common';
-import { AppService } from './app.service';
+import { RegistryService } from './registry.service';
 
 @Controller('registry')
-export class AppController {
-    constructor(private readonly appService: AppService) {}
+export class RegistryController {
+    constructor(private readonly appService: RegistryService) {}
 
     @Options(':microAppName')
     @Header('Access-Control-Allow-Headers', '*')

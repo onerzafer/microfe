@@ -32,7 +32,8 @@
     "rxjs": "^6.2.2",
     "strip-comments": "^1.0.2",
     "typescript": "^3.0.1",
-    "uniqid": "^5.0.3"
+    "uniqid": "^5.0.3",
+    "walk": "^2.3.14"
   },
   "devDependencies": {
     "@nestjs/testing": "^5.1.0",

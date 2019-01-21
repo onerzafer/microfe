@@ -1,20 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { join } from 'path';
-import { Manifest } from './interfaces/manifest.interface';
 import * as dashify from 'dashify';
 import * as strip from 'strip-comments';
 import * as uniqid from 'uniqid';
 import * as cheerio from 'cheerio';
-import { HTMLUtils } from './untilities/html.utils';
-import { JSUtils } from './untilities/js.utils';
-import { TemplateUtils } from './untilities/template.utils';
-import { FileUtils } from './untilities/file.utils';
+import { FileUtils } from '../../untilities/file.utils';
+import { Manifest } from '../../interfaces/manifest.interface';
+import { HTMLUtils } from '../../untilities/html.utils';
+import { JSUtils } from '../../untilities/js.utils';
+import { TemplateUtils } from '../../untilities/template.utils';
 
 @Injectable()
-export class AppService {
+export class RegistryService {
     getMicroApp(microAppName: string): Promise<string> {
         const containerId = uniqid('app-root-'); // TODO: read from manifest file when cron task implemented
-        const appRootPath = `${__dirname}/micro-app-registry/${microAppName}`;
+        const appRootPath = `${__dirname}/../../micro-app-registry/${microAppName}`;
 
         return FileUtils.readFile(`${appRootPath}/micro-fe-manifest.json`)
             .then(manifestAsText => JSON.parse(manifestAsText))
@@ -46,7 +46,6 @@ export class AppService {
                             .then($ => HTMLUtils.fixRelativeHtmlPaths($, name))
                             .then($ => HTMLUtils.cleanScriptTags($))
                             .then($ => HTMLUtils.extractBodyArea($))
-                            .then(file => HTMLUtils.composeTemplate(styleLinks, file, containerId))
                     );
 
                 return Promise.all(htmlTemplatePromises)
@@ -61,7 +60,7 @@ export class AppService {
                                     appContentAsText,
                                     ...manifest,
                                     containerId,
-                                    htmlTemplate,
+                                    htmlTemplate: HTMLUtils.composeTemplate(styleLinks, htmlTemplate, containerId),
                                     type,
                                 })
                             )
@@ -78,10 +77,10 @@ export class AppService {
         type,
     }): Promise<string> {
         const parsedDep = Object.keys(dependencies)
-            .map(dep => "'" + dep + "'")
+            .map(dep => '\'' + dep + '\'')
             .join(', ');
         const encapsulatedWebPackAppContentAsText = appContentAsText.replace(/webpackJsonp/g, `webpackJsonp__${name}`);
-        return FileUtils.readFile(`${__dirname}/templates/${TemplateUtils.templatePath(type)}`).then(template =>
+        return FileUtils.readFile(TemplateUtils.templatePath(type)).then(template =>
             template
                 .replace(/__kebab-name__/g, dashify(name))
                 .replace(/__container_id__/g, containerId)

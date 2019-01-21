@@ -66,7 +66,7 @@ export class HTMLUtils {
         $('script').each(function() {
             const path = $(this).attr('src');
             if(path && path.search('http') === -1) {
-                paths.push(join(appRootPath,path));
+                paths.push(join(appRootPath, path));
             }
         });
         console.log(paths);
@@ -78,7 +78,7 @@ export class HTMLUtils {
         $('script').each(function() {
             const text = $(this).html();
             if(text && text !== '') {
-                inlinePieces.push(text+';');
+                inlinePieces.push(text +';');
             }
         });
         return inlinePieces;
