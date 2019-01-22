@@ -4,6 +4,7 @@
             name: '__name__',
             deps: [__dependencies__],
             initialize: microAppArgs => {
+                __global-inject__
                 class __name__ extends HTMLElement {
                     constructor() {
                         super();

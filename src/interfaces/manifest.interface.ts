@@ -5,6 +5,7 @@ export interface Manifest {
     name: string;
     type: 'app' | 'service' | 'webcomponent' | 'web component';
     bundle?: BundleItem[];
+    globalBundle?: BundleItem[];
     version: string;
     dependencies?: { [key: string]: string };
 }

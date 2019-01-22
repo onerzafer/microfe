@@ -4,7 +4,10 @@
         WINDOW.AppsManager.register({
             name: '__name__',
             deps: [__dependencies__],
-            initialize: (microAppArgs) => __appContentAsText__,
+            initialize: (microAppArgs) => {
+                __global-inject__
+                return __appContentAsText__
+            }
         });
     }
 })(window, document);
