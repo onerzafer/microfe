@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TestController } from './test.controller';
-import { ManifestTasks } from '../../tasks/manifest.task';
+import { CssTasks } from '../../tasks/css.tasks';
 
 @Module({
     imports: [],
     controllers: [TestController],
-    providers: [ManifestTasks],
+    providers: [CssTasks],
 })
 export class TestModule {}

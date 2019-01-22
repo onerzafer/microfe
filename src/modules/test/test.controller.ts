@@ -1,9 +1,9 @@
 import { Controller, Get, Header, Options, Param } from '@nestjs/common';
-import { ManifestTasks } from '../../tasks/manifest.task';
+import { CssTasks } from '../../tasks/css.tasks';
 
 @Controller('test')
 export class TestController {
-    constructor(private readonly manifest: ManifestTasks) {}
+    constructor(private readonly css: CssTasks) {}
 
     @Options()
     @Header('Access-Control-Allow-Headers', '*')
@@ -20,6 +20,6 @@ export class TestController {
     @Header('Access-Control-Allow-Methods', 'GET')
     @Header('Cache-Control', 'none')
     getApp(@Param('microAppName') microAppName: string): Promise<any> {
-        return this.manifest.addContainerId();
+        return this.css.fixRelativeCssPathsInAllApps();
     }
 }

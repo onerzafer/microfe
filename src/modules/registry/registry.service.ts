@@ -13,7 +13,7 @@ import { TemplateUtils } from '../../untilities/template.utils';
 @Injectable()
 export class RegistryService {
     getMicroApp(microAppName: string): Promise<string> {
-        const containerId = uniqid('app-root-'); // TODO: read from manifest file when cron task implemented
+        const containerId = uniqid('app-root-');
         const appRootPath = `${__dirname}/../../micro-app-registry/${microAppName}`;
 
         return FileUtils.readFile(`${appRootPath}/micro-fe-manifest.json`)
@@ -41,7 +41,7 @@ export class RegistryService {
                                 inlineJSPieces = [...HTMLUtils.getInlineJSPieces($), ...inlineJSPieces];
                                 return $;
                             })
-                            .then($ => HTMLUtils.fixRelativeInlineStylePaths($, `http://localhost:3000/${name}`, containerId))
+                            .then($ => HTMLUtils.fixRelativeInlineStylePaths($, `http://localhost:3000/${name}`))
                             .then($ => HTMLUtils.moveStylesToBody($))
                             .then($ => HTMLUtils.fixRelativeHtmlPaths($, name))
                             .then($ => HTMLUtils.cleanScriptTags($))
@@ -51,7 +51,7 @@ export class RegistryService {
                 return Promise.all(htmlTemplatePromises)
                     .then(htmlTemplates => htmlTemplates.join('')) // concat html templates
                     .then(htmlTemplate =>
-                        Promise.all(jsFilePaths.map(path => FileUtils.readFile(path).then(f => `/* ${path} */ ${strip(f, {})}`)))
+                        Promise.all(jsFilePaths.map(path => FileUtils.readFile(path).then(f => `/* ${path.split('/')[path.split('/').length - 1]} */ ${strip(f, {})}`)))
                             .then(files => [...inlineJSPieces, ...files].join(' ')) // concat js files
                             .then(file => JSUtils.fixRelativePathsInJs(name, file))
                             .then(file => JSUtils.fixDocumentAccessJs(file))

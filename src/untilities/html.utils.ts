@@ -53,10 +53,10 @@ export class HTMLUtils {
         return $;
     }
 
-    static fixRelativeInlineStylePaths($, path: string, containerId: string) {
+    static fixRelativeInlineStylePaths($, path: string) {
         $('style').each(function() {
             let style = $(this).html();
-            $(this).html(CSSUtils.fixRelativePathsInCss(style, path, containerId));
+            $(this).html(CSSUtils.fixRelativePathsInCss(style, path));
         });
         return $;
     }
@@ -65,11 +65,10 @@ export class HTMLUtils {
         const paths = [];
         $('script').each(function() {
             const path = $(this).attr('src');
-            if(path && path.search('http') === -1) {
+            if (path && path.search('http') === -1) {
                 paths.push(join(appRootPath, path));
             }
         });
-        console.log(paths);
         return paths;
     }
 
@@ -77,8 +76,8 @@ export class HTMLUtils {
         const inlinePieces = [];
         $('script').each(function() {
             const text = $(this).html();
-            if(text && text !== '') {
-                inlinePieces.push(text +';');
+            if (text && text !== '') {
+                inlinePieces.push(text + ';');
             }
         });
         return inlinePieces;
