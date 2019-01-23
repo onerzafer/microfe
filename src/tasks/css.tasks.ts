@@ -32,7 +32,7 @@ export class CssTasks extends NestSchedule {
                 .then(fileUpdatedContent => FileUtils.writeFile(file.path, fileUpdatedContent));
         });
         console.log('**************************************************');
-        console.log('CRON TASK: fixRelativeCssPathsInAllApps');
+        console.log(`CRON TASK: fixRelativeCssPathsInAllApps (${new Date().toString()})`);
         console.log('--------------------------------------------------');
         if ( files.length > 0 ) {
             console.log(`\n(${files.length}) PROCESSED FILES\n`);
