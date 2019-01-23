@@ -12,4 +12,10 @@ export class FileUtils {
             fs.writeFile(path, Buffer.from(fileUpdatedContent, 'utf8'), (err: Error) => (err ? reject(err) : resolve()))
         );
     }
+
+    static copyFile(source: string, destination: string) {
+        return new Promise((resolve, reject) =>
+            fs.copyFile(source, destination, (err: Error) => (err ? reject(err) : resolve()))
+        );
+    }
 }
