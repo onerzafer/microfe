@@ -12,6 +12,8 @@ export class TemplateUtils {
                 return 'web-component.wrapper.template.js';
             case 'service':
                 return 'service.wrapper.template.js';
+            case 'global':
+                return 'global-inject.template.js';
             default:
                 return 'app.wrapper.template.js';
         }

@@ -25,21 +25,19 @@ export class CssTasks extends NestSchedule {
                     return fileContent;
                 })
                 .then(fileContent => CSSUtils.fixRelativePathsInCss(path, fileContent))
-                .then(fileUpdatedContent => FileUtils.writeFile(file.path, fileUpdatedContent))
-                .then(() => console.log('FILE UPDATED', file.name))
-                .catch(() => console.log('FILE FAILED TO UPDATE', file.name));
+                .then(fileUpdatedContent => FileUtils.writeFile(file.path, fileUpdatedContent));
         });
         return files;
     }
 
-    async getAppRootPathsList(path: string): Promise<{ name: string; path: string }[]> {
+    async getAppRootPathsList(path: string): Promise<{ name: string; path: string; root: string }[]> {
         return await new Promise(resolve => {
             const files = [];
             const walker = walk.walk(path, { followLinks: false });
             walker.on('file', function(root, stat, next) {
                 const path = join(root, stat.name);
-                if (stat.name.match('.css') && !stat.name.match('.original') && !fs.existsSync(`${path}.fixed`)) {
-                    files.push({ name: stat.name, path });
+                if (stat.name.match('.css') && !stat.name.match('.original') && !fs.existsSync(`${path}.original`)) {
+                    files.push({ name: stat.name, path, root });
                 }
                 next();
             });
