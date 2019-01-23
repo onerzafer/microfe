@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { RegistryModule } from './modules/registry/registry.module';
-import { TestModule } from './modules/test/test.module';
+import { TaskModule } from './tasks/task.module';
 
 @Module({
     imports: [
         RegistryModule,
-        TestModule,
-    ],
+        TaskModule,
+    ]
 })
 export class AppModule {}

@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { Cron, NestSchedule } from 'nest-schedule';
+import { Cron, NestSchedule, defaults } from 'nest-schedule';
 import { join } from 'path';
 import * as walk from 'walk';
 import * as fs from 'fs';
 import { CSSUtils } from '../untilities/css.utils';
 import { FileUtils } from '../untilities/file.utils';
+
+defaults.enable = true;
+defaults.maxRetry = -1;
+defaults.retryInterval = 5000;
 
 @Injectable()
 export class CssTasks extends NestSchedule {
@@ -12,7 +16,7 @@ export class CssTasks extends NestSchedule {
         super();
     }
 
-    // @Cron('*/10 * * * *')
+    @Cron('*/10 * * * *')
     async fixRelativeCssPathsInAllApps() {
         // every ten minutes check all unhandled files and fix paths
         const files = await this.getAppRootPathsList(join(__dirname, '../', 'micro-app-registry'));
@@ -27,10 +31,19 @@ export class CssTasks extends NestSchedule {
                 .then(fileContent => CSSUtils.fixRelativePathsInCss(path, fileContent))
                 .then(fileUpdatedContent => FileUtils.writeFile(file.path, fileUpdatedContent));
         });
-        return files;
+        console.log('**************************************************');
+        console.log('CRON TASK: fixRelativeCssPathsInAllApps');
+        console.log('--------------------------------------------------');
+        if ( files.length > 0 ) {
+            console.log(`\n(${files.length}) PROCESSED FILES\n`);
+            console.log(files.map(file => file.path).join('\n'));
+        } else {
+            console.log(`\nNO FILES FOUND TO PROCESS\n`);
+        }
+        console.log('**************************************************');
     }
 
-    async getAppRootPathsList(path: string): Promise<{ name: string; path: string; root: string }[]> {
+    private async getAppRootPathsList(path: string): Promise<{ name: string; path: string; root: string }[]> {
         return await new Promise(resolve => {
             const files = [];
             const walker = walk.walk(path, { followLinks: false });

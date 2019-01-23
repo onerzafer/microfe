@@ -3,7 +3,6 @@ import { RegistryController } from './registry.controller';
 import { RegistryService } from './registry.service';
 
 @Module({
-    imports: [],
     controllers: [RegistryController],
     providers: [RegistryService],
 })
