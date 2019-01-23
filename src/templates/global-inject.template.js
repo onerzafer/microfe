@@ -1,15 +1,15 @@
 (() => {
     const globalBundle = __global-inject-list__;
-    const $head = DOCUMENT.getElementsByTagName('head')[0];
+    const $head = document.getElementsByTagName('head')[0];
     globalBundle.forEach(bundle => {
             switch(bundle.type) {
                 case 'js':
-                const script = DOCUMENT.createElement('script');
+                const script = document.createElement('script');
                 script.src = bundle.path;
                 $head.appendChild(script);
                 break;
             case 'css':
-                const link = DOCUMENT.createElement('link');
+                const link = document.createElement('link');
                 link.href = bundle.path;
                 link.rel = 'stylesheet';
                 $head.appendChild(link);
