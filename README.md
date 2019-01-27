@@ -1,3 +1,8 @@
+# *microfe-registry*
+*(microfe - short for micro frontends)*
+
+
+
 ## Installation
 
 ```bash
@@ -33,3 +38,5 @@ $ npm run test:e2e
 # test coverage
 $ npm run test:cov
 ```
+# License
+[MIT](https://choosealicense.com/licenses/mit/)
