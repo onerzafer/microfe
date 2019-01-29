@@ -49,21 +49,24 @@ $ npm run test:e2e
 # test coverage
 $ npm run test:cov
 ```
+
 ## Developing a Micro-app
 
-microfe address some possible problems with sme set of built-in solutions. Isolated app scope is solved by wrapping
+microfe address some possible problems with some set of built-in solutions. Isolated app scope is solved by wrapping
 the apps into web components.
--  For app to app communication MicroAppStore is provided.
--  To share a global set of configuration Config is provided.
--  For async dependencies AppsManager is the main app loader and provider
-All these solutions and more is provided by microfe as globals relative to micro-apps. Here these micro-app relative
-globals will be mentioned as Runtime Relative Globals.  
+
+-   For the app to app communication MicroAppStore is provided.
+-   To share a global set of configuration Config is provided.
+-   For async dependencies, AppsManager is the main app loader and provider
+    All these solutions and more are provided by microfe as globals relative to micro-apps. Here these micro-app relative
+    globals will be mentioned as Runtime Relative Globals.
 
 ## Runtime _Relative_ Global Variables
 
-All micro-apps under micro-fe-registry will be wrapped into some templates just be be ready for consumption. Templates
-are designed to provide a unified interface for each app and also scoping. According to a micro-app defined variables
+All micro-apps under micro-fe-registry will be wrapped into some templates just to be ready for consumption. Templates
+are designed to provide a unified interface for each app and also scoping. According to a micro-app, defined variables
 within this scope are global variables.
+
 ```TypeScript
 interface MicroAppArgs {
     AppsManager: AppsManager;
@@ -77,7 +80,9 @@ const CONTAINER: HTMLElement;
 const DOCUMENT: Document;
 const WINDOW: Window;
 ```
-All the declared dependencies will be provided under microAppArgs with given name as the key of the instance of the app. 
+
+All the declared dependencies will be provided under microAppArgs with given name as the key of the instance of the app.
+
 ### Microfe Manifest
 
 Microfe-registry assumes a couple of different scenarios for each possible app and it is subject to changes in the
@@ -130,7 +135,7 @@ them at the same time.
 #### Static SPA
 
 Just copy files as is under micro-fe-registry folder and add necessary micro-fe-manifest.json and the app is ready to
-run. Just a notice if your spa is based on jquery unfortunately it will not work as micro-app because of non-supported
+run. Just notice if your spa is based on jquery, unfortunately, it will not work as micro-app because of non-supported
 shadow dom usage.
 
 #### React
