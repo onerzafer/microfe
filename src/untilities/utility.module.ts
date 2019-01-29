@@ -4,10 +4,12 @@ import { TemplateUtils } from './template.utils';
 import { CSSUtils } from './css.utils';
 import { HTMLUtils } from './html.utils';
 import { JSUtils } from './js.utils';
+import { RemoteFileUtils } from './remote-file.utils';
 
 @Module({
     providers: [
         { provide: FileUtils, useValue: new FileUtils() },
+        RemoteFileUtils,
         TemplateUtils,
         CSSUtils,
         HTMLUtils,
@@ -15,6 +17,7 @@ import { JSUtils } from './js.utils';
     ],
     exports: [
         FileUtils,
+        RemoteFileUtils,
         TemplateUtils,
         CSSUtils,
         HTMLUtils,

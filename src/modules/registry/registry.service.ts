@@ -9,52 +9,67 @@ import { Manifest } from '../../interfaces/manifest.interface';
 import { HTMLUtils } from '../../untilities/html.utils';
 import { JSUtils } from '../../untilities/js.utils';
 import { TemplateUtils } from '../../untilities/template.utils';
+import { ConfigService } from '../config/config.service';
+import { RemoteFileUtils } from '../../untilities/remote-file.utils';
+import { FileAccessor } from '../../interfaces/file-accessor.interface';
 
 @Injectable()
 export class RegistryService {
+    fileAccessor: FileAccessor = this.fileUtils;
     constructor(
         private readonly fileUtils: FileUtils,
+        private readonly remoteFileUtils: RemoteFileUtils,
         private readonly htmlUtils: HTMLUtils,
         private readonly jsUtils: JSUtils,
-        private readonly templateUtils: TemplateUtils
+        private readonly templateUtils: TemplateUtils,
+        private readonly config: ConfigService
     ) {}
 
-    getMicroApp(microAppName: string): Promise<string> {
+    async getMicroApp(microAppName: string): Promise<string> {
+        const registryPath = `${__dirname}/../../${this.config.get('REGISTRY_PATH')}`;
+        const externals = await this.fileUtils.readFile(`${registryPath}/external.json`).then(file => JSON.parse(file));
+        const isRemote: boolean = Object.keys(externals).indexOf(microAppName) > -1;
+        this.fileAccessor = isRemote ? this.remoteFileUtils : this.fileUtils;
         const containerId = uniqid('app-root-');
-        const appRootPath = `${__dirname}/../../micro-app-registry/${microAppName}`;
+        const appRootPath = `${registryPath}/${microAppName}`;
 
-        return this.fileUtils
+        return this.fileAccessor
             .readFile(`${appRootPath}/micro-fe-manifest.json`)
             .then(manifestAsText => JSON.parse(manifestAsText))
             .then((manifest: Manifest) => {
                 const { globalBundle = [], bundle = [], type = 'default', name } = manifest;
                 const globalBundleFixedPaths = globalBundle.map(bundle => ({
                     ...bundle,
-                    path: `http://localhost:3000/${name}/${bundle.path}`,
+                    path: `${this.config.get('DOMAIN')}/${name}/${bundle.path}`,
                 }));
                 let jsFilePaths =
                     bundle.filter(({ type }) => type === 'js').map(({ path }) => join(appRootPath, path)) || [];
                 let inlineJSPieces = [];
                 const styleLinks = bundle
                     .filter(({ type }) => type === 'css')
-                    .map(({ path }) => `http://localhost:3000/${name}/${path}`);
+                    .map(({ path }) => `${this.config.get('DOMAIN')}/${name}/${path}`);
 
                 const htmlTemplatePromises = bundle
                     .filter(({ type }) => type === 'template' || type === 'html')
                     .map(({ path }) => `${appRootPath}/${path}`)
                     .map(path =>
-                        this.fileUtils
+                        this.fileAccessor
                             .readFile(path)
                             .then(file => cheerio.load(file))
                             .then($ => {
-                                jsFilePaths = [...this.htmlUtils.getLocalPathsToJsFiles($, appRootPath), ...jsFilePaths];
+                                jsFilePaths = [
+                                    ...this.htmlUtils.getLocalPathsToJsFiles($, appRootPath),
+                                    ...jsFilePaths,
+                                ];
                                 return $;
                             })
                             .then($ => {
                                 inlineJSPieces = [...this.htmlUtils.getInlineJSPieces($), ...inlineJSPieces];
                                 return $;
                             })
-                            .then($ => this.htmlUtils.fixRelativeInlineStylePaths($, `http://localhost:3000/${name}`))
+                            .then($ =>
+                                this.htmlUtils.fixRelativeInlineStylePaths($, `${this.config.get('DOMAIN')}/${name}`)
+                            )
                             .then($ => this.htmlUtils.moveStylesToBody($))
                             .then($ => this.htmlUtils.fixRelativeHtmlPaths($, name))
                             .then($ => this.htmlUtils.cleanScriptTags($))
@@ -98,19 +113,19 @@ export class RegistryService {
         globalBundle = [],
     }): Promise<string> {
         const parsedDep = Object.keys(dependencies)
-            .map(dep => '\'' + dep + '\'')
+            .map(dep => "'" + dep + "'")
             .join(', ');
         const globalInjectListAsString = JSON.stringify(globalBundle);
         const encapsulatedWebPackAppContentAsText = appContentAsText.replace(/webpackJsonp/g, `webpackJsonp__${name}`);
         return (() =>
             globalBundle.length
-                ? this.fileUtils
+                ? this.fileAccessor
                       .readFile(this.templateUtils.templatePath('global'))
                       .then(globalInjectTemplate =>
                           globalInjectTemplate.replace(/__global-inject-list__/g, globalInjectListAsString)
                       )
                 : Promise.resolve(''))().then(parsedGlobalIject =>
-            this.fileUtils.readFile(this.templateUtils.templatePath(type)).then(template =>
+            this.fileAccessor.readFile(this.templateUtils.templatePath(type)).then(template =>
                 template
                     .replace(/__kebab-name__/g, dashify(name))
                     .replace(/__container_id__/g, containerId)
