@@ -1,5 +1,8 @@
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
 export class CSSUtils {
-    static fixRelativePathsInCss(path: string, file: string) {
+    fixRelativePathsInCss(path: string, file: string) {
         const relativePathPatternInQuoute = /(?<=url\((["']))((?!data:image)(?!http).)*?(?=\1\))/g;
         const relativePathPatternNoQuoute = /(?<=url\()((?!["'])(?!data:image)(?!http).)*?(?=\))/g;
         return file

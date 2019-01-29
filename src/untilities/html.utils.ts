@@ -1,8 +1,12 @@
 import { join } from 'path';
 import { CSSUtils } from './css.utils';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class HTMLUtils {
-    static composeTemplate(styleLinks: any[], htmlTemplate: string, containerId: string) {
+    constructor(private readonly cssUtils: CSSUtils) {}
+
+    composeTemplate(styleLinks: any[], htmlTemplate: string, containerId: string) {
         return [
             ...styleLinks.map(link => `<link href="${link}" rel="stylesheet" type="text/css" />`),
             htmlTemplate,
@@ -10,7 +14,7 @@ export class HTMLUtils {
         ].join('');
     }
 
-    static moveStylesToBody($) {
+    moveStylesToBody($) {
         const $body = $('body');
         const $links = $('head link[rel="stylesheet"]');
         const $styles = $('head style');
@@ -25,17 +29,17 @@ export class HTMLUtils {
         return $;
     }
 
-    static extractBodyArea($): string {
+    extractBodyArea($): string {
         const $body = $('body');
         return $body.length > 0 ? $body.html() : $.html();
     }
 
-    static cleanScriptTags($) {
+    cleanScriptTags($) {
         $('script').remove();
         return $;
     }
 
-    static fixRelativeHtmlPaths($, name: string) {
+    fixRelativeHtmlPaths($, name: string) {
         $('img').each(function() {
             let uri = $(this).attr('src');
             if (uri && uri !== '' && uri.search('http') === -1) {
@@ -53,15 +57,15 @@ export class HTMLUtils {
         return $;
     }
 
-    static fixRelativeInlineStylePaths($, path: string) {
+    fixRelativeInlineStylePaths($, path: string) {
         $('style').each(function() {
             let style = $(this).html();
-            $(this).html(CSSUtils.fixRelativePathsInCss(style, path));
+            $(this).html(this.cssUtils.fixRelativePathsInCss(style, path));
         });
         return $;
     }
 
-    static getLocalPathsToJsFiles($, appRootPath: string): string[] {
+    getLocalPathsToJsFiles($, appRootPath: string): string[] {
         const paths = [];
         $('script').each(function() {
             const path = $(this).attr('src');
@@ -72,7 +76,7 @@ export class HTMLUtils {
         return paths;
     }
 
-    static getInlineJSPieces($): string[] {
+    getInlineJSPieces($): string[] {
         const inlinePieces = [];
         $('script').each(function() {
             const text = $(this).html();

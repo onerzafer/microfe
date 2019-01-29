@@ -12,11 +12,19 @@ import { TemplateUtils } from '../../untilities/template.utils';
 
 @Injectable()
 export class RegistryService {
+    constructor(
+        private readonly fileUtils: FileUtils,
+        private readonly htmlUtils: HTMLUtils,
+        private readonly jsUtils: JSUtils,
+        private readonly templateUtils: TemplateUtils
+    ) {}
+
     getMicroApp(microAppName: string): Promise<string> {
         const containerId = uniqid('app-root-');
         const appRootPath = `${__dirname}/../../micro-app-registry/${microAppName}`;
 
-        return FileUtils.readFile(`${appRootPath}/micro-fe-manifest.json`)
+        return this.fileUtils
+            .readFile(`${appRootPath}/micro-fe-manifest.json`)
             .then(manifestAsText => JSON.parse(manifestAsText))
             .then((manifest: Manifest) => {
                 const { globalBundle = [], bundle = [], type = 'default', name } = manifest;
@@ -35,21 +43,22 @@ export class RegistryService {
                     .filter(({ type }) => type === 'template' || type === 'html')
                     .map(({ path }) => `${appRootPath}/${path}`)
                     .map(path =>
-                        FileUtils.readFile(path)
+                        this.fileUtils
+                            .readFile(path)
                             .then(file => cheerio.load(file))
                             .then($ => {
-                                jsFilePaths = [...HTMLUtils.getLocalPathsToJsFiles($, appRootPath), ...jsFilePaths];
+                                jsFilePaths = [...this.htmlUtils.getLocalPathsToJsFiles($, appRootPath), ...jsFilePaths];
                                 return $;
                             })
                             .then($ => {
-                                inlineJSPieces = [...HTMLUtils.getInlineJSPieces($), ...inlineJSPieces];
+                                inlineJSPieces = [...this.htmlUtils.getInlineJSPieces($), ...inlineJSPieces];
                                 return $;
                             })
-                            .then($ => HTMLUtils.fixRelativeInlineStylePaths($, `http://localhost:3000/${name}`))
-                            .then($ => HTMLUtils.moveStylesToBody($))
-                            .then($ => HTMLUtils.fixRelativeHtmlPaths($, name))
-                            .then($ => HTMLUtils.cleanScriptTags($))
-                            .then($ => HTMLUtils.extractBodyArea($))
+                            .then($ => this.htmlUtils.fixRelativeInlineStylePaths($, `http://localhost:3000/${name}`))
+                            .then($ => this.htmlUtils.moveStylesToBody($))
+                            .then($ => this.htmlUtils.fixRelativeHtmlPaths($, name))
+                            .then($ => this.htmlUtils.cleanScriptTags($))
+                            .then($ => this.htmlUtils.extractBodyArea($))
                     );
 
                 return Promise.all(htmlTemplatePromises)
@@ -57,20 +66,20 @@ export class RegistryService {
                     .then(htmlTemplate =>
                         Promise.all(
                             jsFilePaths.map(path =>
-                                FileUtils.readFile(path).then(
-                                    f => `/* ${path.split('/')[path.split('/').length - 1]} */ ${strip(f, {})}`
-                                )
+                                this.fileUtils
+                                    .readFile(path)
+                                    .then(f => `/* ${path.split('/')[path.split('/').length - 1]} */ ${strip(f, {})}`)
                             )
                         )
                             .then(files => [...inlineJSPieces, ...files].join(' ')) // concat js files
-                            .then(file => JSUtils.fixRelativePathsInJs(name, file))
-                            .then(file => JSUtils.fixDocumentAccessJs(file))
+                            .then(file => this.jsUtils.fixRelativePathsInJs(name, file))
+                            .then(file => this.jsUtils.fixDocumentAccessJs(file))
                             .then(appContentAsText =>
                                 this.wrapTheApp({
                                     appContentAsText,
                                     ...manifest,
                                     containerId,
-                                    htmlTemplate: HTMLUtils.composeTemplate(styleLinks, htmlTemplate, containerId),
+                                    htmlTemplate: this.htmlUtils.composeTemplate(styleLinks, htmlTemplate, containerId),
                                     type,
                                     globalBundle: globalBundleFixedPaths,
                                 })
@@ -89,17 +98,20 @@ export class RegistryService {
         globalBundle = [],
     }): Promise<string> {
         const parsedDep = Object.keys(dependencies)
-            .map(dep => "'" + dep + "'")
+            .map(dep => '\'' + dep + '\'')
             .join(', ');
         const globalInjectListAsString = JSON.stringify(globalBundle);
         const encapsulatedWebPackAppContentAsText = appContentAsText.replace(/webpackJsonp/g, `webpackJsonp__${name}`);
         return (() =>
             globalBundle.length
-                ? FileUtils.readFile(TemplateUtils.templatePath('global')).then(globalInjectTemplate =>
-                      globalInjectTemplate.replace(/__global-inject-list__/g, globalInjectListAsString)
-                  )
-                : Promise.resolve(''))().then(parsedGlobalIject => FileUtils.readFile(TemplateUtils.templatePath(type))
-                .then(template => template
+                ? this.fileUtils
+                      .readFile(this.templateUtils.templatePath('global'))
+                      .then(globalInjectTemplate =>
+                          globalInjectTemplate.replace(/__global-inject-list__/g, globalInjectListAsString)
+                      )
+                : Promise.resolve(''))().then(parsedGlobalIject =>
+            this.fileUtils.readFile(this.templateUtils.templatePath(type)).then(template =>
+                template
                     .replace(/__kebab-name__/g, dashify(name))
                     .replace(/__container_id__/g, containerId)
                     .replace(/__name__/g, name)

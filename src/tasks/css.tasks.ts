@@ -12,7 +12,7 @@ defaults.retryInterval = 5000;
 
 @Injectable()
 export class CssTasks extends NestSchedule {
-    constructor() {
+    constructor(private readonly fileUtils: FileUtils, private readonly cssUtils: CSSUtils) {
         super();
     }
 
@@ -23,18 +23,19 @@ export class CssTasks extends NestSchedule {
         files.forEach(file => {
             const fileFolder = file.path.split('src/micro-app-registry')[1].replace(`${file.name}`, '');
             const path = `http://localhost:3000${fileFolder}`;
-            FileUtils.readFile(file.path)
+            this.fileUtils
+                .readFile(file.path)
                 .then(fileContent => {
-                    FileUtils.copyFile(file.path, `${file.path}.original`);
+                    this.fileUtils.copyFile(file.path, `${file.path}.original`);
                     return fileContent;
                 })
-                .then(fileContent => CSSUtils.fixRelativePathsInCss(path, fileContent))
-                .then(fileUpdatedContent => FileUtils.writeFile(file.path, fileUpdatedContent));
+                .then(fileContent => this.cssUtils.fixRelativePathsInCss(path, fileContent))
+                .then(fileUpdatedContent => this.fileUtils.writeFile(file.path, fileUpdatedContent));
         });
         console.log('**************************************************');
         console.log(`CRON TASK: fixRelativeCssPathsInAllApps (${new Date().toString()})`);
         console.log('--------------------------------------------------');
-        if ( files.length > 0 ) {
+        if (files.length > 0) {
             console.log(`\n(${files.length}) PROCESSED FILES\n`);
             console.log(files.map(file => file.path).join('\n'));
         } else {

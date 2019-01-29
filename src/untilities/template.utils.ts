@@ -1,11 +1,14 @@
-export class TemplateUtils {
-    static base = `${__dirname}/../templates/`;
+import { Injectable } from '@nestjs/common';
 
-    static templatePath(type) {
-        return `${TemplateUtils.base}${TemplateUtils.templateFileName(type)}`;
+@Injectable()
+export class TemplateUtils {
+    base = `${__dirname}/../templates/`;
+
+    templatePath(type) {
+        return `${this.base}${this.templateFileName(type)}`;
     }
 
-    static templateFileName(type) {
+    templateFileName(type) {
         switch (type) {
             case 'webcomponent':
             case 'web component':
