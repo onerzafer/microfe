@@ -31,11 +31,13 @@ export class RegistryService {
         const isRemote: boolean = Object.keys(externals).indexOf(microAppName) > -1;
         this.fileAccessor = isRemote ? this.remoteFileUtils : this.fileUtils;
         const containerId = uniqid('app-root-');
-        const appRootPath = `${registryPath}/${microAppName}`;
+        const appRootPath = isRemote
+            ? externals[microAppName]
+            : `${registryPath}/${microAppName}`;
 
         return this.fileAccessor
             .readFile(`${appRootPath}/micro-fe-manifest.json`)
-            .then(manifestAsText => JSON.parse(manifestAsText))
+            .then(manifestAsText => typeof manifestAsText === 'string' ? JSON.parse(manifestAsText) : manifestAsText)
             .then((manifest: Manifest) => {
                 const { globalBundle = [], bundle = [], type = 'default', name } = manifest;
                 const globalBundleFixedPaths = globalBundle.map(bundle => ({
@@ -43,7 +45,7 @@ export class RegistryService {
                     path: `${this.config.get('DOMAIN')}/${name}/${bundle.path}`,
                 }));
                 let jsFilePaths =
-                    bundle.filter(({ type }) => type === 'js').map(({ path }) => join(appRootPath, path)) || [];
+                    bundle.filter(({ type }) => type === 'js').map(({ path }) => `${appRootPath}/${path}`) || [];
                 let inlineJSPieces = [];
                 const styleLinks = bundle
                     .filter(({ type }) => type === 'css')
@@ -81,7 +83,7 @@ export class RegistryService {
                     .then(htmlTemplate =>
                         Promise.all(
                             jsFilePaths.map(path =>
-                                this.fileUtils
+                                this.fileAccessor
                                     .readFile(path)
                                     .then(f => `/* ${path.split('/')[path.split('/').length - 1]} */ ${strip(f, {})}`)
                             )
@@ -113,19 +115,19 @@ export class RegistryService {
         globalBundle = [],
     }): Promise<string> {
         const parsedDep = Object.keys(dependencies)
-            .map(dep => "'" + dep + "'")
+            .map(dep => '\'' + dep + '\'')
             .join(', ');
         const globalInjectListAsString = JSON.stringify(globalBundle);
         const encapsulatedWebPackAppContentAsText = appContentAsText.replace(/webpackJsonp/g, `webpackJsonp__${name}`);
         return (() =>
             globalBundle.length
-                ? this.fileAccessor
+                ? this.fileUtils
                       .readFile(this.templateUtils.templatePath('global'))
                       .then(globalInjectTemplate =>
                           globalInjectTemplate.replace(/__global-inject-list__/g, globalInjectListAsString)
                       )
-                : Promise.resolve(''))().then(parsedGlobalIject =>
-            this.fileAccessor.readFile(this.templateUtils.templatePath(type)).then(template =>
+                : Promise.resolve(''))().then(parsedGlobalInject =>
+            this.fileUtils.readFile(this.templateUtils.templatePath(type)).then(template =>
                 template
                     .replace(/__kebab-name__/g, dashify(name))
                     .replace(/__container_id__/g, containerId)
@@ -133,7 +135,7 @@ export class RegistryService {
                     .replace(/__htmlTemplate__/g, htmlTemplate)
                     .replace(/__dependencies__/g, parsedDep)
                     .replace(/__appContentAsText__/g, encapsulatedWebPackAppContentAsText)
-                    .replace(/__global-inject__/g, parsedGlobalIject)
+                    .replace(/__global-inject__/g, parsedGlobalInject)
             )
         );
     }

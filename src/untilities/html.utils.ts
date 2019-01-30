@@ -70,7 +70,7 @@ export class HTMLUtils {
         $('script').each(function() {
             const path = $(this).attr('src');
             if (path && path.search('http') === -1) {
-                paths.push(join(appRootPath, path));
+                paths.push(`${appRootPath}/${path}`);
             }
         });
         return paths;

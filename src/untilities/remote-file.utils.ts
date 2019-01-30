@@ -1,17 +1,14 @@
 import { FileAccessor } from '../interfaces/file-accessor.interface';
-import { Injectable } from '@nestjs/common';
+import { HttpService, Injectable } from '@nestjs/common';
+import { map } from 'rxjs/operators';
 
 @Injectable()
 export class RemoteFileUtils implements FileAccessor {
-    copyFile(source: string, destination: string): Promise<void> {
-        return Promise.resolve(undefined);
-    }
-
+    constructor(private readonly http: HttpService) {}
     readFile(path: string): Promise<string> {
-        return Promise.resolve(undefined);
-    }
-
-    writeFile(path: string, fileUpdatedContent: string): Promise<void> {
-        return Promise.resolve(undefined);
+        console.log(path);
+        return this.http.get(path, {responseType: 'text'})
+            .pipe(map(response => response.data))
+            .toPromise();
     }
 }
