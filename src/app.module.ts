@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { RegistryModule } from './modules/registry/registry.module';
-import { TaskModule } from './tasks/task.module';
+import { StitchingLayerModule } from './modules/StitchingLayer/stitching-layer.module';
+import { RegisterModule } from './modules/register/register.module';
 
 @Module({
-    imports: [RegistryModule, TaskModule],
+    imports: [StitchingLayerModule, RegisterModule],
 })
 export class AppModule {}
