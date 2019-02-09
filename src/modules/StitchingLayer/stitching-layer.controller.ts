@@ -1,6 +1,8 @@
-import { Controller, Get, Header, HttpException, HttpStatus, Options, Param } from '@nestjs/common';
+import { Controller, Get, Header, HttpException, HttpStatus, Options, Param, Req } from '@nestjs/common';
 import { StitchingLayerService } from './stitching-layer.service';
 import { MicroAppServerStoreService } from '../MicroAppServerStore/micro-app-server-store.service';
+import { Request } from 'express';
+import { requestToParams } from 'src/utilities/request-data-maping.utils';
 
 @Controller()
 export class StitchingLayerController {
@@ -9,22 +11,12 @@ export class StitchingLayerController {
         private readonly microAppServerStoreService: MicroAppServerStoreService
     ) {}
 
-    @Options('*')
-    @Header('Access-Control-Allow-Headers', '*')
-    @Header('Access-Control-Allow-Origin', 'http://localhost:9000')
-    @Header('Access-Control-Allow-Credentials', 'true')
-    @Header('Access-Control-Allow-Methods', 'OPTIONS')
-    getAppOptions(@Param('microAppName') microAppName: string): string {
-        return 'true';
-    }
-
     @Get('*')
-    @Header('Access-Control-Allow-Origin', 'http://localhost:9000')
     @Header('Access-Control-Allow-Credentials', 'true')
     @Header('Access-Control-Allow-Methods', 'GET')
     @Header('content-type', 'text/html; charset=utf-8')
     @Header('Cache-Control', 'none')
-    async getApp(@Param() params: any): Promise<string> {
+    async getApp(@Param() params: any, @Req() request: Request): Promise<string> {
         // resolve micro app name if no app available return 404
         const appName = this.microAppServerStoreService.mapRouteToMicroAppName(params['*']);
         if (!appName) {
@@ -33,14 +25,16 @@ export class StitchingLayerController {
         // get dependency list
         const microAppListToFetch = this.microAppServerStoreService.getDependencyList(appName);
         // fetch all fragments
+        const requestPayload = requestToParams(request);
         const fragments = await Promise.all(
-            microAppListToFetch.map(microApp => this.stitchingLayerService.fetchFragment(microApp))
+            microAppListToFetch.map(microApp => this.stitchingLayerService.fetchFragment(microApp, requestPayload))
         );
-        const fragmentsWithAbsolutePaths = fragments.map(fragment => {
-            return this.stitchingLayerService.fixRelativePaths(fragment);
-        });
+        const fragmentsWithAbsolutePaths = fragments
+        .map(fragment => this.stitchingLayerService.transformFragment(fragment))
+        .map(fragment => this.stitchingLayerService.fixRelativePaths(fragment))
+        .map(fragment => this.stitchingLayerService.serializeFragment(fragment));
         // concat fragments as html
-        const concatenatedFragments = await this.stitchingLayerService.concatFragments(fragmentsWithAbsolutePaths);
+        const concatenatedFragments = this.stitchingLayerService.concatFragments(fragmentsWithAbsolutePaths);
         // inject microfe scripts into html (maybe an amd loader can do the trick)
         return this.stitchingLayerService.injectClientScripts(concatenatedFragments);
     }

@@ -1,0 +1,1 @@
+export const isLocalURL = (url: string) => /^(?!https?:\/\/).*/g.test(url);
