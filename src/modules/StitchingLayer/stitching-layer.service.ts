@@ -5,10 +5,10 @@ import { MicroAppGraphItem, MicroAppFragment } from 'src/interfaces/miro-app.int
 import { RequestPayload } from 'src/interfaces/proxy.interface';
 import { AxiosResponse } from 'axios';
 import { map } from 'rxjs/operators';
-import * as parse5 from 'parse5';
 import { MicroAppFragmentTransformed } from '../../interfaces/miro-app.interface';
-import { hasAttr, searchExec, isTag, or, and, get } from '../../utilities/html-tree.utility';
 import { isLocalURL } from '../../utilities/url.utils';
+import { JSDOM } from 'jsdom';
+import * as uniqid from 'uniqid';
 
 @Injectable()
 export class StitchingLayerService {
@@ -33,57 +33,58 @@ export class StitchingLayerService {
             .toPromise();
     }
 
-    concatFragments(fragments: MicroAppFragment[]): string {
-        return fragments.map(frag => frag.fragment).join('');
+    concatFragments(fragments: MicroAppFragmentTransformed[]): JSDOM {
+        if (fragments && fragments.length) {
+            const rootFragment = fragments.find(fragment => fragment.isRoot).fragment;
+            const fragmentReferencesInRoot = rootFragment.window.document.getElementsByTagName('fragment');
+            console.log('# of detected fragment:', fragmentReferencesInRoot.length);
+            for (let frag of fragmentReferencesInRoot) {
+                const appName = frag.attributes.getNamedItem('name').value;
+                console.log('APPNAME: ', appName);
+                const app = fragments.find(fragment => fragment.appName === appName);
+                if (app) {
+                    const wrapper = rootFragment.window.document.createElement('div');
+                    wrapper.id = uniqid(app.appName + '-');
+                    wrapper.innerHTML = app.fragment.window.document.getElementsByTagName('body')[0].innerHTML;
+                    frag.appendChild(wrapper);
+                }
+            }
+            return rootFragment;
+        } else {
+            return new JSDOM('SOMETHING WRONG');
+        }
     }
 
-    injectClientScripts(concatenatedFragments: string): string {
-        return `<script>console.log('client script')</script>${concatenatedFragments}`;
+    injectClientScripts(parsedFragments: JSDOM): JSDOM {
+        return parsedFragments;
     }
 
     fixRelativePaths(microAppFragment: MicroAppFragmentTransformed): MicroAppFragmentTransformed {
+        const scriptTags = microAppFragment.fragment.window.document.getElementsByTagName('script');
+        const linkTags = microAppFragment.fragment.window.document.getElementsByTagName('link');
+        const imgTags = microAppFragment.fragment.window.document.getElementsByTagName('img');
+        this.setLocalLinkFor(scriptTags, 'src', microAppFragment.accessUri);
+        this.setLocalLinkFor(linkTags, 'href', microAppFragment.accessUri);
+        this.setLocalLinkFor(imgTags, 'src', microAppFragment.accessUri);
+        // TODO: fix urls in html
         return {
-            ...microAppFragment,
-            fragment: searchExec(
-                microAppFragment.fragment,
-                or(
-                    and(isTag('script'), hasAttr('src'), n => isLocalURL(get(n).attr('src'))),
-                    and(isTag('link'), hasAttr('href'), n => isLocalURL(get(n).attr('href')))
-                ),
-                n => {
-                    switch (n.tagName) {
-                        case 'script':
-                            {
-                                const val = `${microAppFragment.accessUri}${get(n).attr('src')}`;
-                                get(n).attr('src', val);
-                            }
-                            break;
-                        case 'link':
-                            {
-                                const val = `${microAppFragment.accessUri}${get(n).attr('href')}`;
-                                get(n).attr('href', val);
-                            }
-                            break;
-                    }
-                    return n;
-                }
-            ),
+            ...microAppFragment
         };
+    }
+
+    private setLocalLinkFor(elementList: HTMLCollection, attrName: string, accessUri: string) {
+        for (let element of elementList) {
+            const srcValue = element.hasAttribute(attrName) && element.attributes.getNamedItem(attrName).value;
+            if (srcValue && isLocalURL(srcValue)) {
+                element.setAttribute(attrName, [accessUri, ...srcValue.split('/').filter(s => s && s !== '')].join('/'));
+            }
+        }
     }
 
     transformFragment(microAppFragment: MicroAppFragment): MicroAppFragmentTransformed {
         return {
             ...microAppFragment,
-            fragment: microAppFragment.isRoot
-                ? parse5.parse(microAppFragment.fragment)
-                : parse5.parseFragment(microAppFragment.fragment),
-        };
-    }
-
-    serializeFragment(microAppFragment: MicroAppFragmentTransformed): MicroAppFragment {
-        return {
-            ...microAppFragment,
-            fragment: parse5.serialize(microAppFragment.fragment),
+            fragment: new JSDOM(microAppFragment.fragment) as JSDOM,
         };
     }
 }

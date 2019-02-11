@@ -1,3 +1,5 @@
+import { JSDOM } from 'jsdom';
+
 export interface MicroAppGraphItem {
     appName: string;
     accessUri: string;
@@ -10,5 +12,5 @@ export interface MicroAppFragment extends MicroAppGraphItem {
 }
 
 export interface MicroAppFragmentTransformed extends MicroAppGraphItem {
-    fragment: any;
+    fragment: JSDOM;
 }

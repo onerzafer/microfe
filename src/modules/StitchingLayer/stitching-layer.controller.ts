@@ -31,11 +31,12 @@ export class StitchingLayerController {
         );
         const fragmentsWithAbsolutePaths = fragments
         .map(fragment => this.stitchingLayerService.transformFragment(fragment))
-        .map(fragment => this.stitchingLayerService.fixRelativePaths(fragment))
-        .map(fragment => this.stitchingLayerService.serializeFragment(fragment));
-        // concat fragments as html
+        .map(fragment => this.stitchingLayerService.fixRelativePaths(fragment));
+        // concat fragments as json object and after this point meta data of each fragment is not required
         const concatenatedFragments = this.stitchingLayerService.concatFragments(fragmentsWithAbsolutePaths);
-        // inject microfe scripts into html (maybe an amd loader can do the trick)
-        return this.stitchingLayerService.injectClientScripts(concatenatedFragments);
+        // inject microfe client scripts into html (maybe an amd loader can do the trick)
+        const fragmentsWithClientScript = this.stitchingLayerService.injectClientScripts(concatenatedFragments);
+        // serialize the object back to html
+        return fragmentsWithClientScript.serialize();
     }
 }

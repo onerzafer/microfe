@@ -29,7 +29,9 @@ export class MicroAppServerStoreService {
     getDependencyList(appName: string): MicroAppGraphItem[] {
         // assuming there is no circular dependencies in the list
         return [
-            { appName: 'mock', accessUri: 'http://localhost:3001', isRoot: true }
+            { appName: 'LayoutApp', accessUri: 'http://localhost:3001/LayoutApp', isRoot: true },
+            { appName: 'HeaderApp', accessUri: 'http://localhost:3001/HeaderApp', isRoot: false },
+            { appName: 'ContentContainer', accessUri: 'http://localhost:3001/ContentContainer', isRoot: false },
         ];
     }
 
