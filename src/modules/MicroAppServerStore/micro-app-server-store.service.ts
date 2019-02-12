@@ -1,18 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { MicroAppServerDeclarationDTO } from '../../dto/micro-app-server-dto';
 import { wildcardToRegExp } from '../../utilities/route.utils';
-import { MicroAppGraphItem } from 'src/interfaces/miro-app.interface';
+import { MicroAppGraph, MicroAppGraphItem } from 'src/interfaces/miro-app.interface';
+import * as fs from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class MicroAppServerStoreService {
-    private microAppServerList: { [key: string]: MicroAppServerDeclarationDTO } = {
-        mock: { appName: 'mock', accessUri: 'https://www.google.com', route: '', uses: undefined },
-    };
+    private microAppServerList: MicroAppGraph = {};
+    constructor() {
+        fs.readFile(join(__dirname, '../../topology.json'), 'utf8', (err, result) => {
+            if (!err && result) {
+                this.microAppServerList = JSON.parse(result) as MicroAppGraph;
+            }
+        });
+    }
+
     add(declaration: MicroAppServerDeclarationDTO): Promise<boolean> {
         // check config for redis if available save declarations to redis if not use json db
-        // validate dependencies and reject if there is circular dependencies
-        this.microAppServerList[declaration.appName] = { ...declaration };
-        return Promise.resolve(true);
+        const tempList = { ...this.microAppServerList };
+        tempList[declaration.appName] = { ...declaration };
+
+        if (this.isCyclic(declaration.appName, tempList)) {
+            Promise.reject('Cyclic dependency');
+        } else {
+            this.microAppServerList = { ...tempList };
+            return Promise.resolve(true);
+        }
     }
 
     mapRouteToMicroAppName(route: string): string {
@@ -26,14 +40,49 @@ export class MicroAppServerStoreService {
         return foundMicroAppServerDeclaration && foundMicroAppServerDeclaration.appName;
     }
 
-    getDependencyList(appName: string): MicroAppGraphItem[] {
-        // assuming there is no circular dependencies in the list
-        return [
-            { appName: 'LayoutApp', accessUri: 'http://localhost:3001/LayoutApp', isRoot: true },
-            { appName: 'HeaderApp', accessUri: 'http://localhost:3001/HeaderApp', isRoot: false },
-            { appName: 'ContentContainer', accessUri: 'http://localhost:3001/ContentContainer', isRoot: false },
-        ];
+    getDependencyList(appName: string, isRoot: boolean = false): MicroAppGraphItem[] {
+        return this.traverseGraph(appName, this.microAppServerList, [], isRoot);
     }
 
-    private traverseGraph() {}
+    private traverseGraph(
+        initialPoint: string,
+        graph: MicroAppGraph,
+        cumulativeList: MicroAppGraphItem[],
+        isRoot: boolean = false
+    ): MicroAppGraphItem[] {
+        const current = graph[initialPoint];
+        const list = [];
+        if (current && current.uses) {
+            current.uses.forEach(nextPoint =>
+                this.traverseGraph(nextPoint, graph, cumulativeList)
+                    .filter(dep => dep)
+                    .forEach(listItem => list.push(listItem))
+            );
+        }
+        if (current) {
+            list.push({
+                ...current,
+                isRoot: isRoot
+            });
+        }
+        return [...list];
+    }
+
+    private isCyclic(vertex: string, list: MicroAppGraph, visited = {}, recStack = {}): boolean {
+        if (!visited[vertex]) {
+            visited[vertex] = true;
+            recStack[vertex] = true;
+            const neighbours = (list[vertex] && list[vertex].uses) || [];
+            for (let i = 0; i < neighbours.length; i++) {
+                const current = neighbours[i];
+                if (!visited[current] && this.isCyclic(current, list, visited, recStack)) {
+                    return true;
+                } else if (recStack[current]) {
+                    return true;
+                }
+            }
+        }
+        recStack[vertex] = false;
+        return false;
+    }
 }
