@@ -2,7 +2,6 @@ import { HttpService, Injectable } from '@nestjs/common';
 import { ConfigService } from '../config/config.service';
 import { MicroAppGraphItem, MicroAppFragment } from 'src/interfaces/miro-app.interface';
 import { RequestPayload } from 'src/interfaces/proxy.interface';
-import { AxiosResponse } from 'axios';
 import { map } from 'rxjs/operators';
 import { MicroAppFragmentTransformed } from '../../interfaces/miro-app.interface';
 import { setLocalLinkFor } from '../../utilities/url.utils';
