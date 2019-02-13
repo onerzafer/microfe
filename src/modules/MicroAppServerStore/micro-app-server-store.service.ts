@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { MicroAppServerDeclarationDTO } from '../../dto/micro-app-server-dto';
-import { wildcardToRegExp } from '../../utilities/route.utils';
+import { routeToRegExp, wildcardToRegExp } from '../../utilities/route.utils';
 import { MicroAppGraph, MicroAppGraphItem } from 'src/interfaces/miro-app.interface';
 import * as fs from 'fs';
 import { join } from 'path';
@@ -32,16 +32,25 @@ export class MicroAppServerStoreService {
     mapRouteToMicroAppName(route: string): string {
         const foundMicroAppServerDeclaration: MicroAppServerDeclarationDTO = Object.keys(this.microAppServerList)
             .map(name => ({ ...this.microAppServerList[name] }))
+            .filter(microApp => microApp.type === 'page')
             .find(declaration =>
                 declaration.route.includes('*')
                     ? wildcardToRegExp(declaration.route).test(route)
-                    : declaration.route === route
+                    : routeToRegExp(declaration.route).test(route)
             );
         return foundMicroAppServerDeclaration && foundMicroAppServerDeclaration.appName;
     }
 
     getDependencyList(appName: string, isRoot: boolean = false): MicroAppGraphItem[] {
         return this.traverseGraph(appName, this.microAppServerList, [], isRoot);
+    }
+
+    getMicroAppDeclarations() {
+        return Object.keys(this.microAppServerList)
+            .filter(key => this.microAppServerList[key].type === 'page')
+            .map(key => ({
+                ...this.microAppServerList[key]
+            }));
     }
 
     private traverseGraph(

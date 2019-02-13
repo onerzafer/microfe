@@ -11,16 +11,21 @@ import * as fs from 'fs';
 import { join } from 'path';
 import { getRootFragment, moveTagFromFragmentHeadToFragment } from '../../utilities/dom.utils';
 import { mapMicroAppToMicroAppFragment } from '../../utilities/micro-app-maping.utils';
+import { MicroAppServerStoreService } from '../MicroAppServerStore/micro-app-server-store.service';
 
 @Injectable()
 export class StitchingLayerService {
-    constructor(private readonly config: ConfigService, private readonly http: HttpService) {}
+    constructor(
+        private readonly config: ConfigService,
+        private readonly http: HttpService,
+        private readonly microAppServerService: MicroAppServerStoreService,
+    ) {}
 
     fetchFragment(microApp: MicroAppGraphItem, requestPayload: RequestPayload): Promise<MicroAppFragment> {
         return this.http
             .get(microApp.accessUri + '/index.html', {
                 params: { ...requestPayload.queries },
-                headers: { ...requestPayload.headers },
+                headers: { ...requestPayload.headers, 'server-side': true},
             })
             .pipe(map(mapMicroAppToMicroAppFragment(microApp)))
             .toPromise();
@@ -72,7 +77,7 @@ export class StitchingLayerService {
                         <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
                         <!-- CLIENT SCRIPTS -->
                         <script>
-                            ${data}
+                            ${this.composeClientScript(data)}
                         </script>
                     `);
                     parsedFragments.window.document.getElementsByTagName('head')[0].appendChild(clientScripts);
@@ -80,6 +85,10 @@ export class StitchingLayerService {
                 }
             });
         });
+    }
+
+    composeClientScript(rawScript: string) {
+        return rawScript.replace(/__MicroAppDeclarations__/g, JSON.stringify(this.microAppServerService.getMicroAppDeclarations()));
     }
 
     static fixRelativePaths(microAppFragment: MicroAppFragmentTransformed): MicroAppFragmentTransformed {

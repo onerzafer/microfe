@@ -2,13 +2,20 @@
     "LayoutApp": {
         "appName": "LayoutApp",
         "accessUri": "http://localhost:3001/LayoutApp",
-        "route": "index",
+        "route": "/index",
+        "type": "page",
         "uses": ["HeaderApp", "ContentContainer"]
     },
-    "HeaderApp": { "appName": "HeaderApp", "accessUri": "http://localhost:3001/HeaderApp", "route": "*" },
+    "staticApp": {
+        "appName": "staticApp",
+        "accessUri": "http://localhost:3001/staticApp",
+        "route": "/static",
+        "type": "page"
+    },
+    "HeaderApp": { "appName": "HeaderApp", "accessUri": "http://localhost:3001/HeaderApp", "type": "fragment" },
     "ContentContainer": {
         "appName": "ContentContainer",
         "accessUri": "http://localhost:3001/ContentContainer",
-        "route": "*"
+        "type": "fragment"
     }
 }

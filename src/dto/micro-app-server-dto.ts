@@ -1,4 +1,4 @@
-import { IsAlphanumeric, IsArray, IsNotEmpty, IsString, ValidateIf } from 'class-validator';
+import { IsAlphanumeric, IsArray, IsEnum, IsNotEmpty, IsString, ValidateIf } from 'class-validator';
 
 export class MicroAppServerDeclarationDTO {
     @IsAlphanumeric()
@@ -10,9 +10,14 @@ export class MicroAppServerDeclarationDTO {
     @IsNotEmpty()
     readonly accessUri: string;
 
-    // validate path format
     @IsString()
     @IsNotEmpty()
+    @IsEnum(['page', 'fragment'])
+    readonly type: string;
+
+    // validate path format
+    @ValidateIf(o => o.type === 'page')
+    @IsString()
     readonly route: string;
 
     @ValidateIf(o => o.uses !== undefined)
