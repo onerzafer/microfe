@@ -53,7 +53,7 @@
             }
         }
 
-        if (!window.customElements.get('custom-element')) {
+        if (!window.customElements.get('microfe-link')) {
             window.MicroFeLink = MicroFeLink;
             window.customElements.define('microfe-link', MicroFeLink);
         }
@@ -87,11 +87,11 @@
         };
 
         const onChangeCallbacks = [];
-        let oldResolvedRoute = undefined;
+        let isSilent = undefined;
 
         const changed = newRoute => {
             onChangeCallbacks.forEach(fn => {
-                fn.apply(undefined, oldResolvedRoute, newRoute);
+                fn.call(undefined, newRoute, oldResolvedRoute);
             });
             oldResolvedRoute = newRoute;
         };
@@ -143,12 +143,49 @@
             navigate,
         };
     });
+    define('MicroFeRouterOutlet', ['MicroFeRouter'], function(MicroFeRouter) {
+        let instances = 0;
+        let elemRef = undefined;
+        class MicroFeRouterOutlet extends HTMLElement {
+            constructor() {
+                super();
+            }
+
+            connectedCallback() {
+                instances++;
+                if (instances > 1) {
+                    this.parentElement.removeChild(this);
+                    throw 'More than one microfe-router-outlet is not allowed';
+                } else {
+                    elemRef = this;
+                }
+            }
+
+            disconnectedCallback() {
+                instances--;
+                if (instance < 0) {
+                    instances = 0;
+                }
+                elemRef = undefined;
+            }
+        }
+        if (!window.customElements.get('microfe-router-outlet')) {
+            window.MicroFeRouterOutlet = MicroFeRouterOutlet;
+            window.customElements.define('microfe-router-outlet', MicroFeRouterOutlet);
+        }
+        MicroFeRouter.onChange(microApp => {
+            console.log(microApp);
+            if(elemRef) {
+                elemRef.innerHTML = microApp.appName;
+            }
+        });
+    });
     define('MicroFe', ['MicroFeRouter', 'MicroAppDeclarations'], function(MicroFeRouter, MicroAppDeclarations) {
         return {
             load: () => {},
         };
     });
-    require(['MicroFe', 'MicroFeLink'], function() {
+    require(['MicroFe', 'MicroFeLink', 'MicroFeRouterOutlet'], function() {
         console.log('DEFAULT INIT');
     });
 })(require, define);
