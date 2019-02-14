@@ -87,8 +87,7 @@
         };
 
         const onChangeCallbacks = [];
-        let isSilent = undefined;
-
+        let oldResolvedRoute;
         const changed = newRoute => {
             onChangeCallbacks.forEach(fn => {
                 fn.call(undefined, newRoute, oldResolvedRoute);
@@ -106,14 +105,14 @@
                         : Utils.routeToRegExp(declaration.route).test(route)
                 );
         };
-        const navigate = (route, isSlient) => {
+        const navigate = (route, isSilent) => {
             const resolvedRoute = resolve(route);
             if (resolvedRoute) {
-                if (!isSlient) {
+                if (!isSilent) {
                     window.history.pushState(undefined, undefined, route);
                 }
                 changed(resolvedRoute);
-            } else if (!isSlient) {
+            } else if (!isSilent) {
                 window.location.href = route;
             }
         };
