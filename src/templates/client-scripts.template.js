@@ -173,18 +173,16 @@
             window.customElements.define('microfe-router-outlet', MicroFeRouterOutlet);
         }
         MicroFeRouter.onChange(microApp => {
-            console.log(microApp);
-            if(elemRef) {
+            if (elemRef && microApp.type === 'page') {
+                // TODO: load the app html fragment, js, css files
+                //  add css files to header if they are not loaded already
+                //  add js files above all other scripts under body if they are not loaded already
+                //  inject the fragment inside the elemRef
                 elemRef.innerHTML = microApp.appName;
             }
         });
     });
-    define('MicroFe', ['MicroFeRouter', 'MicroAppDeclarations'], function(MicroFeRouter, MicroAppDeclarations) {
-        return {
-            load: () => {},
-        };
-    });
-    require(['MicroFe', 'MicroFeLink', 'MicroFeRouterOutlet'], function() {
-        console.log('DEFAULT INIT');
+    require(['MicroAppDeclarations', 'MicroFeLink', 'MicroFeRouterOutlet'], function(MicroAppDeclarations) {
+        console.log('DEFAULT INIT', MicroAppDeclarations.getDeclaration());
     });
 })(require, define);

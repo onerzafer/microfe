@@ -12,13 +12,17 @@ export class MicroAppServerDeclarationDTO {
 
     @IsString()
     @IsNotEmpty()
-    @IsEnum(['page', 'fragment'])
+    @IsEnum(['page', 'fragment', 'extendable'])
     readonly type: string;
 
     // validate path format
     @ValidateIf(o => o.type === 'page')
     @IsString()
     readonly route: string;
+
+    @ValidateIf(o => o.type === 'page')
+    @IsString()
+    readonly extends: string;
 
     @ValidateIf(o => o.uses !== undefined)
     @IsArray()

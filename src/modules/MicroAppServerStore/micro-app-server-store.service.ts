@@ -49,7 +49,7 @@ export class MicroAppServerStoreService {
         return Object.keys(this.microAppServerList)
             .filter(key => this.microAppServerList[key].type === 'page')
             .map(key => ({
-                ...this.microAppServerList[key]
+                ...this.microAppServerList[key],
             }));
     }
 
@@ -68,10 +68,15 @@ export class MicroAppServerStoreService {
                     .forEach(listItem => list.push(listItem))
             );
         }
+        if (current && current.extends) {
+            this.traverseGraph(current.extends, graph, cumulativeList)
+                .filter(dep => dep)
+                .forEach(listItem => list.push(listItem));
+        }
         if (current) {
             list.push({
                 ...current,
-                isRoot: isRoot
+                isRoot: isRoot,
             });
         }
         return [...list];

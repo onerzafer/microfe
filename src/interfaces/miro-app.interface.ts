@@ -10,6 +10,8 @@ export interface MicroAppGraphItem {
     accessUri: string;
     uses: string[];
     isRoot: boolean;
+    type: 'page' | 'fragment' | 'extendable';
+    extends: string;
 }
 
 
