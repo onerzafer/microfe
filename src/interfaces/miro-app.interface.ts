@@ -2,16 +2,11 @@ import { JSDOM } from 'jsdom';
 import { MicroAppServerDeclarationDTO } from '../dto/micro-app-server-dto';
 
 export interface MicroAppGraph {
-    [key: string]: MicroAppServerDeclarationDTO;
+    [key: string]: MicroAppGraphItem;
 }
 
-export interface MicroAppGraphItem {
-    appName: string;
-    accessUri: string;
-    uses: string[];
+export interface MicroAppGraphItem extends MicroAppServerDeclarationDTO {
     isRoot: boolean;
-    type: 'page' | 'fragment' | 'extendable';
-    extends: string;
 }
 
 

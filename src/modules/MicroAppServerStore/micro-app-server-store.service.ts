@@ -19,10 +19,17 @@ export class MicroAppServerStoreService {
     add(declaration: MicroAppServerDeclarationDTO): Promise<boolean> {
         // check config for redis if available save declarations to redis if not use json db
         const tempList = { ...this.microAppServerList };
-        tempList[declaration.appName] = { ...declaration };
+        tempList[declaration.appName] = { ...declaration, isRoot: false };
 
         if (this.isCyclic(declaration.appName, tempList)) {
             Promise.reject('Cyclic dependency');
+        } else if (
+            declaration.routerOutletDelegate &&
+            Object.keys(this.microAppServerList)
+                .map(key => this.microAppServerList[key])
+                .some(app => app.routerOutletDelegate)
+        ) {
+            Promise.reject('Only one routerOutletDelegate is allowed');
         } else {
             this.microAppServerList = { ...tempList };
             return Promise.resolve(true);
@@ -32,7 +39,7 @@ export class MicroAppServerStoreService {
     mapRouteToMicroAppName(route: string): string {
         const foundMicroAppServerDeclaration: MicroAppServerDeclarationDTO = Object.keys(this.microAppServerList)
             .map(name => ({ ...this.microAppServerList[name] }))
-            .filter(microApp => microApp.type === 'page')
+            .filter(microApp => microApp.type === 'page' || microApp.type === 'navigable')
             .find(declaration =>
                 declaration.route.includes('*')
                     ? wildcardToRegExp(declaration.route).test(route)
@@ -42,12 +49,21 @@ export class MicroAppServerStoreService {
     }
 
     getDependencyList(appName: string, isRoot: boolean = false): MicroAppGraphItem[] {
+        const dependencyList = this.traverseGraph(appName, this.microAppServerList, [], isRoot);
+        const routerOutletDelegate = Object.keys(this.microAppServerList)
+            .map(key => this.microAppServerList[key])
+            .find(app => app.routerOutletDelegate);
+        if (!dependencyList.some(app => app.routerOutletDelegate) && routerOutletDelegate) {
+            dependencyList.push({...routerOutletDelegate});
+        }
         return this.traverseGraph(appName, this.microAppServerList, [], isRoot);
     }
 
     getMicroAppDeclarations() {
         return Object.keys(this.microAppServerList)
-            .filter(key => this.microAppServerList[key].type === 'page')
+            .filter(
+                key => this.microAppServerList[key].type === 'page' || this.microAppServerList[key].type === 'navigable'
+            )
             .map(key => ({
                 ...this.microAppServerList[key],
             }));

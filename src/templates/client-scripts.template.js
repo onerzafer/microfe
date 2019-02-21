@@ -2,7 +2,7 @@
     define('MicroAppDeclarations', function() {
         const declarations = __MicroAppDeclarations__;
         return {
-            getDeclaration: () => declarations,
+            getDeclarations: () => declarations,
         };
     });
     define('MicroFeLink', ['MicroFeRouter'], function(MicroFeRouter) {
@@ -59,7 +59,7 @@
         }
     });
     define('MicroFeRouter', ['require', 'MicroAppDeclarations'], function(require, MicroAppDeclarations) {
-        const microAppServerList = MicroAppDeclarations.getDeclaration();
+        const microAppServerList = MicroAppDeclarations.getDeclarations();
         const Utils = {
             wildcardToRegExp: (wildcardTerm, regexpFlag = 'g') =>
                 new RegExp(
@@ -98,7 +98,7 @@
         const resolve = route => {
             return Object.keys(microAppServerList)
                 .map(name => ({ ...microAppServerList[name] }))
-                .filter(microApp => microApp.type === 'page')
+                .filter(microApp => microApp.type === 'page' || microApp.type === 'navigable')
                 .find(declaration =>
                     declaration.route.includes('*')
                         ? Utils.wildcardToRegExp(declaration.route).test(route)
@@ -107,13 +107,19 @@
         };
         const navigate = (route, isSilent) => {
             const resolvedRoute = resolve(route);
+            console.log(resolvedRoute);
             if (resolvedRoute) {
-                if (!isSilent) {
-                    window.history.pushState(undefined, undefined, route);
+                if (resolvedRoute.type === 'navigable') {
+                    if (!isSilent) {
+                        window.history.pushState(undefined, undefined, route);
+                    }
+                    changed(resolvedRoute);
+                } else if (resolvedRoute.type === 'page' && !isSilent) {
+                    window.location = route;
                 }
-                changed(resolvedRoute);
             } else if (!isSilent) {
-                window.location.href = route;
+
+                // window.location.href = route;
             }
         };
 
@@ -173,7 +179,8 @@
             window.customElements.define('microfe-router-outlet', MicroFeRouterOutlet);
         }
         MicroFeRouter.onChange(microApp => {
-            if (elemRef && microApp.type === 'page') {
+            if (elemRef && microApp.type === 'navigable') {
+                // microApp.type === 'navigable' then paint microfe-router-outlet page
                 // TODO: load the app html fragment, js, css files
                 //  add css files to header if they are not loaded already
                 //  add js files above all other scripts under body if they are not loaded already
@@ -183,6 +190,6 @@
         });
     });
     require(['MicroAppDeclarations', 'MicroFeLink', 'MicroFeRouterOutlet'], function(MicroAppDeclarations) {
-        console.log('DEFAULT INIT', MicroAppDeclarations.getDeclaration());
+        console.log('DEFAULT INIT', MicroAppDeclarations.getDeclarations());
     });
 })(require, define);

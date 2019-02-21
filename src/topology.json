@@ -11,6 +11,12 @@
         "route": "/static",
         "type": "page"
     },
+    "reactDemo": {
+        "appName": "reactDemo",
+        "accessUri": "http://localhost:3001/reactDemo",
+        "route": "/react",
+        "type": "navigable"
+    },
     "HeaderApp": {
         "appName": "HeaderApp",
         "accessUri": "http://localhost:3001/HeaderApp",
@@ -21,6 +27,7 @@
         "accessUri": "http://localhost:3001/ContentContainer",
         "route": "/",
         "type": "page",
-        "extends": "LayoutApp"
+        "extends": "LayoutApp",
+        "routerOutletDelegate": true
     }
 }

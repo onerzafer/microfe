@@ -1,4 +1,4 @@
-import { IsAlphanumeric, IsArray, IsEnum, IsNotEmpty, IsString, ValidateIf } from 'class-validator';
+import { IsAlphanumeric, IsArray, IsBoolean, IsEnum, IsNotEmpty, IsString, ValidateIf } from 'class-validator';
 
 export class MicroAppServerDeclarationDTO {
     @IsAlphanumeric()
@@ -12,11 +12,11 @@ export class MicroAppServerDeclarationDTO {
 
     @IsString()
     @IsNotEmpty()
-    @IsEnum(['page', 'fragment', 'extendable'])
+    @IsEnum(['page', 'fragment', 'extendable', 'navigable'])
     readonly type: string;
 
     // validate path format
-    @ValidateIf(o => o.type === 'page')
+    @ValidateIf(o => o.type === 'page' || o.type === 'navigable')
     @IsString()
     readonly route: string;
 
@@ -27,4 +27,8 @@ export class MicroAppServerDeclarationDTO {
     @ValidateIf(o => o.uses !== undefined)
     @IsArray()
     readonly uses: string[];
+
+    @ValidateIf(o => o.type === 'page')
+    @IsBoolean()
+    readonly routerOutletDelegate: boolean;
 }

@@ -32,11 +32,13 @@ export class StitchingLayerService {
     }
 
     concatFragments(fragments: MicroAppFragmentTransformed[]): JSDOM {
-        // TODO: extend logic should be added
         if (fragments && fragments.length) {
             const root = getRootFragment(fragments);
             const superFragment = this.getSuperFragment(fragments, root);
-            const rootFragment = superFragment ? this.extend(superFragment.fragment, root.fragment) : root.fragment;
+            let rootFragment = superFragment ? this.extend(superFragment.fragment, root.fragment) : root.fragment;
+            if (root.type === 'navigable' && fragments.some(frag => frag.routerOutletDelegate)) {
+                // TODO inject resolved route with type navigable to microfe-router-outlet under routerOutletDelegate
+            }
             const childFragmentList = Array.from(rootFragment.window.document.getElementsByTagName('fragment'));
             childFragmentList.forEach(frag => this.injectFragmentIntoRoot(frag, fragments, rootFragment));
             return rootFragment;
