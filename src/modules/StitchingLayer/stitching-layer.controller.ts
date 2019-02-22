@@ -2,7 +2,7 @@ import { Controller, Get, Header, HttpException, HttpStatus, Param, Req } from '
 import { StitchingLayerService } from './stitching-layer.service';
 import { MicroAppServerStoreService } from '../MicroAppServerStore/micro-app-server-store.service';
 import { Request } from 'express';
-import { requestToParams } from '../../utilities/micro-app-maping.utils';
+import { JSDOM } from 'jsdom';
 
 @Controller()
 export class StitchingLayerController {
@@ -22,21 +22,16 @@ export class StitchingLayerController {
         if (!appName) {
             throw new HttpException('Not found', HttpStatus.NOT_FOUND);
         }
-        // get dependency list
-        const microAppListToFetch = this.microAppServerStoreService.getDependencyList(appName, true);
-        // fetch all fragments
-        const requestPayload = requestToParams(request);
-        const fragments = await Promise.all(
-            microAppListToFetch.map(microApp => this.stitchingLayerService.fetchFragment(microApp, requestPayload))
-        );
-        const fragmentsWithAbsolutePaths = fragments
-        .map(fragment => StitchingLayerService.transformFragment(fragment))
-        .map(fragment => StitchingLayerService.fixRelativePaths(fragment));
-        // concat fragments as json object and after this point meta data of each fragment is not required
-        const concatenatedFragments = this.stitchingLayerService.concatFragments(fragmentsWithAbsolutePaths);
-        // inject microfe client scripts into html (maybe an amd loader can do the trick)
-        const fragmentsWithClientScript = await this.stitchingLayerService.injectClientScripts(concatenatedFragments);
-        // serialize the object back to html
-        return fragmentsWithClientScript.serialize();
+        const microAppGraphItem = this.microAppServerStoreService.get(appName);
+        const routerDelegateGraphItem = this.microAppServerStoreService.getRouterOutlet();
+        let microAppParsed: JSDOM = await this.stitchingLayerService.parseMicroApp(microAppGraphItem, request);
+        if (routerDelegateGraphItem && microAppGraphItem.type === 'navigable') {
+            const routerDelegateParsed: JSDOM = await this.stitchingLayerService.parseMicroApp(
+                routerDelegateGraphItem,
+                request
+            );
+            microAppParsed = this.stitchingLayerService.preFillRouterOutlet(routerDelegateParsed, microAppParsed);
+        }
+        return microAppParsed && microAppParsed.serialize();
     }
 }

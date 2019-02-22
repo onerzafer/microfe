@@ -36,6 +36,12 @@ export class MicroAppServerStoreService {
         }
     }
 
+    get(appName: string): MicroAppGraphItem {
+        return Object.keys(this.microAppServerList)
+            .map(key => this.microAppServerList[key])
+            .find(microApp => microApp.appName === appName);
+    }
+
     mapRouteToMicroAppName(route: string): string {
         const foundMicroAppServerDeclaration: MicroAppServerDeclarationDTO = Object.keys(this.microAppServerList)
             .map(name => ({ ...this.microAppServerList[name] }))
@@ -49,14 +55,13 @@ export class MicroAppServerStoreService {
     }
 
     getDependencyList(appName: string, isRoot: boolean = false): MicroAppGraphItem[] {
-        const dependencyList = this.traverseGraph(appName, this.microAppServerList, [], isRoot);
-        const routerOutletDelegate = Object.keys(this.microAppServerList)
-            .map(key => this.microAppServerList[key])
-            .find(app => app.routerOutletDelegate);
-        if (!dependencyList.some(app => app.routerOutletDelegate) && routerOutletDelegate) {
-            dependencyList.push({...routerOutletDelegate});
-        }
         return this.traverseGraph(appName, this.microAppServerList, [], isRoot);
+    }
+
+    getRouterOutlet(): MicroAppGraphItem {
+        return Object.keys(this.microAppServerList)
+            .map(key => this.microAppServerList[key])
+            .find(microApp => microApp.routerOutletDelegate);
     }
 
     getMicroAppDeclarations() {

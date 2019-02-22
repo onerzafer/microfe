@@ -10,15 +10,16 @@ import * as uniqid from 'uniqid';
 import * as fs from 'fs';
 import { join } from 'path';
 import { getRootFragment, moveTagFromFragmentHeadTo } from '../../utilities/dom.utils';
-import { mapMicroAppToMicroAppFragment } from '../../utilities/micro-app-maping.utils';
+import { mapMicroAppToMicroAppFragment, requestToParams } from '../../utilities/micro-app-maping.utils';
 import { MicroAppServerStoreService } from '../MicroAppServerStore/micro-app-server-store.service';
+import { Request } from 'express';
 
 @Injectable()
 export class StitchingLayerService {
     constructor(
         private readonly config: ConfigService,
         private readonly http: HttpService,
-        private readonly microAppServerService: MicroAppServerStoreService
+        private readonly microAppServerStoreService: MicroAppServerStoreService
     ) {}
 
     fetchFragment(microApp: MicroAppGraphItem, requestPayload: RequestPayload): Promise<MicroAppFragment> {
@@ -36,9 +37,6 @@ export class StitchingLayerService {
             const root = getRootFragment(fragments);
             const superFragment = this.getSuperFragment(fragments, root);
             let rootFragment = superFragment ? this.extend(superFragment.fragment, root.fragment) : root.fragment;
-            if (root.type === 'navigable' && fragments.some(frag => frag.routerOutletDelegate)) {
-                // TODO inject resolved route with type navigable to microfe-router-outlet under routerOutletDelegate
-            }
             const childFragmentList = Array.from(rootFragment.window.document.getElementsByTagName('fragment'));
             childFragmentList.forEach(frag => this.injectFragmentIntoRoot(frag, fragments, rootFragment));
             return rootFragment;
@@ -90,8 +88,16 @@ export class StitchingLayerService {
                 slot.parentElement.removeChild(slot);
             }
         });
-        moveTagFromFragmentHeadTo(superFragment.window.document.getElementsByTagName('head')[0], fragment.window.document, 'link');
-        moveTagFromFragmentHeadTo(superFragment.window.document.getElementsByTagName('body')[0], fragment.window.document, 'script');
+        moveTagFromFragmentHeadTo(
+            superFragment.window.document.getElementsByTagName('head')[0],
+            fragment.window.document,
+            'link'
+        );
+        moveTagFromFragmentHeadTo(
+            superFragment.window.document.getElementsByTagName('body')[0],
+            fragment.window.document,
+            'script'
+        );
         return superFragment;
     }
 
@@ -119,7 +125,7 @@ export class StitchingLayerService {
     composeClientScript(rawScript: string) {
         return rawScript.replace(
             /__MicroAppDeclarations__/g,
-            JSON.stringify(this.microAppServerService.getMicroAppDeclarations())
+            JSON.stringify(this.microAppServerStoreService.getMicroAppDeclarations())
         );
     }
 
@@ -141,5 +147,46 @@ export class StitchingLayerService {
             ...microAppFragment,
             fragment: new JSDOM(microAppFragment.fragment) as JSDOM,
         };
+    }
+
+    preFillRouterOutlet(routerOutletDelegate: JSDOM, rootFragment: JSDOM): JSDOM {
+        const linksUnderHeader = Array.from(rootFragment.window.document.querySelectorAll('head link[href]'));
+        const bodyContent = rootFragment.window.document.getElementsByTagName('body')[0];
+        const routerOutletEl = routerOutletDelegate.window.document.getElementsByTagName('microfe-router-outlet')[0];
+        const headEl = routerOutletDelegate.window.document.getElementsByTagName('head')[0];
+        if (routerOutletEl) {
+            linksUnderHeader.forEach(linkEl => {
+                headEl.appendChild(linkEl);
+            });
+            if (bodyContent) {
+                routerOutletEl.innerHTML = bodyContent.innerHTML;
+            }
+        }
+        return routerOutletDelegate;
+    }
+
+    async parseMicroApp(microApp: MicroAppGraphItem, request: Request): Promise<JSDOM> {
+        if (microApp) {
+            // get dependency list
+            const microAppListToFetch = this.microAppServerStoreService.getDependencyList(microApp.appName, true);
+            // fetch all fragments
+            const requestPayload = requestToParams(request);
+            const fragments = await Promise.all(
+                microAppListToFetch.map(microApp => this.fetchFragment(microApp, requestPayload))
+            );
+            const fragmentsWithAbsolutePaths = fragments
+                .map(fragment => StitchingLayerService.transformFragment(fragment))
+                .map(fragment => StitchingLayerService.fixRelativePaths(fragment));
+            // concat fragments as json object and after this point meta data of each fragment is not required
+            const concatenatedFragments = this.concatFragments(fragmentsWithAbsolutePaths);
+            // inject microfe client scripts into html (maybe an amd loader can do the trick)
+            if (microApp.type === 'navigable') {
+                return concatenatedFragments;
+            } else {
+                return await this.injectClientScripts(concatenatedFragments);
+            }
+        } else {
+            return Promise.reject(new JSDOM('Not Found'));
+        }
     }
 }
