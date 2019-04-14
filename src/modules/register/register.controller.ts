@@ -1,17 +1,14 @@
-import { Body, Controller, Header, Post, UsePipes, ValidationPipe } from '@nestjs/common';
-import { MicroAppServerStoreService } from '../MicroAppServerStore/micro-app-server-store.service';
-import { MicroAppServerDeclarationDTO } from '../../dto/micro-app-server-dto';
-
+import { Body, Controller, Header, Post } from '@nestjs/common';
+import * as mfhtml from 'mfhtml/index';
 @Controller('register')
 export class RegisterController {
-    constructor(private readonly microAppServerStoreService: MicroAppServerStoreService) {}
+    constructor() {}
 
     @Post()
     @Header('Access-Control-Allow-Methods', 'POST')
-    @UsePipes(new ValidationPipe({ transform: true }))
     async registerMicroAppServer(
-        @Body() declaration: MicroAppServerDeclarationDTO
+        @Body() MicroAppHTML: string
     ): Promise<boolean> {
-        return this.microAppServerStoreService.add(declaration);
+        return mfhtml.register(MicroAppHTML);
     }
 }
