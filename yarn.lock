@@ -3849,9 +3849,9 @@ methods@^1.1.1, methods@^1.1.2, methods@~1.1.2:
   resolved "https://registry.yarnpkg.com/methods/-/methods-1.1.2.tgz#5529a4d67654134edcc5266656835b0f851afcee"
   integrity sha1-VSmk1nZUE07cxSZmVoNbD4Ua/O4=
 
-"mfhtml@https://github.com/onerzafer/mfhtml#v1.0.0-alpha.1":
+"mfhtml@https://github.com/onerzafer/mfhtml#v1.0.0-alpha.3":
   version "1.0.0"
-  resolved "https://github.com/onerzafer/mfhtml#f4974c2153e8490f00b04cf10a0ddc9eeeb4a969"
+  resolved "https://github.com/onerzafer/mfhtml#0727f6d46674fc12db87c6db5e70c03b4060a5c2"
   dependencies:
     html-minifier "^3.5.21"
     jsdom "^13.2.0"
