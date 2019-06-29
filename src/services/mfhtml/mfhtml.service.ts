@@ -30,8 +30,8 @@ export class MfhtmlService {
     this.m.register(html);
   }
 
-  get(appName: string, baseUrl?: string): string {
-    return this.m.get(appName, baseUrl);
+  get(appName: string, scriptToInject?: string): string {
+    return this.m.get(appName, scriptToInject);
   }
 
   getAppNameByAlias(alias: string): string {

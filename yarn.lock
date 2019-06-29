@@ -3893,9 +3893,9 @@ methods@^1.1.1, methods@^1.1.2, methods@~1.1.2:
   resolved "https://registry.yarnpkg.com/methods/-/methods-1.1.2.tgz#5529a4d67654134edcc5266656835b0f851afcee"
   integrity sha1-VSmk1nZUE07cxSZmVoNbD4Ua/O4=
 
-"mfhtml@https://github.com/onerzafer/mfhtml#v1.0.0-alpha.5":
+"mfhtml@https://github.com/onerzafer/mfhtml#v1.0.0-alpha.6":
   version "1.0.0"
-  resolved "https://github.com/onerzafer/mfhtml#88cb3d12f8e9d92be14412573e692028d25e91e0"
+  resolved "https://github.com/onerzafer/mfhtml#9229ec2d97628bedef124dfdd6e0d498c6474e07"
   dependencies:
     html-minifier "^3.5.21"
     jsdom "^13.2.0"
@@ -5654,6 +5654,11 @@ string-length@^2.0.0:
   dependencies:
     astral-regex "^1.0.0"
     strip-ansi "^4.0.0"
+
+string-similarity@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/string-similarity/-/string-similarity-3.0.0.tgz#07b0bc69fae200ad88ceef4983878d03793847c7"
+  integrity sha512-7kS7LyTp56OqOI2BDWQNVnLX/rCxIQn+/5M0op1WV6P8Xx6TZNdajpuqQdiJ7Xx+p1C5CsWMvdiBp9ApMhxzEQ==
 
 string-width@^1.0.1:
   version "1.0.2"

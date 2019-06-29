@@ -1,4 +1,12 @@
-import { Controller, Get, Header, HttpService, NotFoundException, Param, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Header,
+  HttpService,
+  NotFoundException,
+  Param,
+  Req,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { MfhtmlService } from '../../services/mfhtml/mfhtml.service';
 import * as MFHTML from 'mfhtml/index';
@@ -9,9 +17,9 @@ import { map } from 'rxjs/operators';
 export class StitchingLayerController {
   localMfhtml = new MFHTML();
   constructor(
-      private globalMfhtml: MfhtmlService,
-      private urlResolver: UrlResolverService,
-      private http: HttpService,
+    private globalMfhtml: MfhtmlService,
+    private urlResolver: UrlResolverService,
+    private http: HttpService
   ) {}
 
   @Get('*')
@@ -35,24 +43,32 @@ export class StitchingLayerController {
     }
 
     const resolvedAppMissingDependencies: string[] = this.globalMfhtml.getMissingDependencies(
-        resolvedAppName,
+      resolvedAppName
     );
     const resolvedAppDependencies: string[] = [
       resolvedAppName,
       ...this.globalMfhtml.getDependencies(resolvedAppName),
     ];
     const onlyAvailableAppPublicUrls = resolvedAppDependencies
-        .filter(dep => resolvedAppMissingDependencies.indexOf(dep) === -1)
-        .map(dep => this.globalMfhtml.getMeta(dep).baseUrl);
+      .filter(dep => resolvedAppMissingDependencies.indexOf(dep) === -1)
+      .map(dep => this.globalMfhtml.getMeta(dep).baseUrl);
     const appsHTMLs = await Promise.all(
-        onlyAvailableAppPublicUrls.map(appUrl =>
-            this.http
-                .get(appUrl, { responseType: 'text' })
-                .pipe(map(response => response.data))
-                .toPromise(),
-        ),
+      onlyAvailableAppPublicUrls.map(appUrl =>
+        this.http
+          .get(appUrl, { responseType: 'text' })
+          .pipe(map(response => response.data))
+          .toPromise()
+      )
     );
     appsHTMLs.forEach(appHTML => this.localMfhtml.register(appHTML));
-    return this.localMfhtml.get(resolvedAppName);
+    const clientSideRunTime = `window.webpackJsonp = (function() {
+      const push = (newModule) => {
+        console.log(newModule);
+      } 
+      return {
+        push: push
+      }
+    })()`;
+    return this.localMfhtml.get(resolvedAppName, clientSideRunTime);
   }
 }

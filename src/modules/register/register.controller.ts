@@ -12,7 +12,12 @@ export class RegisterController {
     async registerMicroAppServer(
         @Plain() MicroAppHTML: string
     ): Promise<boolean> {
-        this.mfhtml.register(MicroAppHTML);
+        try {
+            this.mfhtml.register(MicroAppHTML);
+        } catch (e) {
+            console.log(MicroAppHTML);
+            console.log(e);
+        }
         return true;
     }
 }
